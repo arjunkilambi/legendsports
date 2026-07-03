@@ -425,6 +425,7 @@ function App(){
   const [authUsername,setAuthUsername]=useState("");
   const [authErr,setAuthErr]=useState("");
   const [authBusy,setAuthBusy]=useState(false);
+  const [showPass,setShowPass]=useState(false);
   const [recruit,setRecruit]=useState({});
   const [coachEmail,setCoachEmail]=useState("");
   const [recruitTab,setRecruitTab]=useState("mine"); const [scoutQuery,setScoutQuery]=useState(""); const [scoutSport,setScoutSport]=useState("All");
@@ -647,7 +648,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
               {authMode==="signup" && (<Field label="Username (shown on your posts)"><input value={authUsername} onChange={e=>setAuthUsername(e.target.value)} placeholder="e.g. Sai" style={inputStyle}/></Field>)}
               <Field label="Email"><input type="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&(authMode==="signup"?doSignUp():doSignIn())}/></Field>
-              <Field label="Password"><input type="password" value={authPass} onChange={e=>setAuthPass(e.target.value)} placeholder="At least 6 characters" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&(authMode==="signup"?doSignUp():doSignIn())}/></Field>
+              <Field label="Password"><div style={{position:"relative"}}><input type={showPass?"text":"password"} value={authPass} onChange={e=>setAuthPass(e.target.value)} placeholder="At least 6 characters" style={{...inputStyle,paddingRight:64}} onKeyDown={e=>e.key==="Enter"&&(authMode==="signup"?doSignUp():doSignIn())}/><button type="button" className="fr-btn" onClick={()=>setShowPass(s=>!s)} style={{position:"absolute",right:4,top:4,bottom:4,background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:12,padding:"0 10px",fontFamily:DISPLAY,letterSpacing:0.5,textTransform:"uppercase"}}>{showPass?"Hide":"Show"}</button></div></Field>
               {authErr && <div style={{color:C.you,fontSize:13}}>{authErr}</div>}
               <button className="fr-btn" disabled={authBusy} onClick={authMode==="signup"?doSignUp:doSignIn} style={{...btnSolid,justifyContent:"center",opacity:authBusy?0.6:1,cursor:authBusy?"not-allowed":"pointer"}}>{authBusy?"Working…":authMode==="signup"?"Create account →":"Log in →"}</button>
               <div style={{color:C.muted,fontSize:11.5,lineHeight:1.5,textAlign:"center"}}>Your account and training history are saved securely in the cloud and follow you across devices. Your username is public; your contact info and location stay private.</div>
