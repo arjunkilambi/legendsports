@@ -423,6 +423,10 @@ function App(){
   const [authUsername,setAuthUsername]=useState("");
   const [authErr,setAuthErr]=useState("");
   const [authBusy,setAuthBusy]=useState(false);
+  const [authForgot,setAuthForgot]=useState(false);
+  const [resetSent,setResetSent]=useState(false);
+  const [recoveryMode,setRecoveryMode]=useState(false);
+  const [newPassword,setNewPassword]=useState("");
   const [recruit,setRecruit]=useState({});
   const [coachEmail,setCoachEmail]=useState("");
   const [recruitTab,setRecruitTab]=useState("mine"); const [scoutQuery,setScoutQuery]=useState(""); const [scoutSport,setScoutSport]=useState("All");
@@ -490,7 +494,13 @@ function App(){
     setStep("home");
   }
   useEffect(()=>{
-    sb.auth.getSession().then(({data})=>{ if(data.session) loadUserData(data.session.user); else setStep("auth"); });
+    const isRecovery=window.location.hash.includes("type=recovery");
+    if(isRecovery){ setRecoveryMode(true); setStep("auth"); }
+    else{ sb.auth.getSession().then(({data})=>{ if(data.session) loadUserData(data.session.user); else setStep("auth"); }); }
+    const {data:sub}=sb.auth.onAuthStateChange((event)=>{
+      if(event==="PASSWORD_RECOVERY"){ setRecoveryMode(true); setStep("auth"); }
+    });
+    return ()=>{ sub.subscription.unsubscribe(); };
   },[]);
 
   function setRecruitField(k,v){
@@ -520,6 +530,25 @@ function App(){
     await loadUserData(data.session.user);
   }
   async function signOut(){ await sb.auth.signOut(); setProfile(null); setUserId(null); setSessions([]); setRecruit({}); setStep("auth"); }
+  async function sendPasswordReset(){
+    const email=authEmail.trim(); if(!email){ setAuthErr("Enter your email first."); return; }
+    setAuthBusy(true); setAuthErr("");
+    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname});
+    setAuthBusy(false);
+    if(error){ setAuthErr(error.message); return; }
+    setResetSent(true);
+  }
+  async function updatePassword(){
+    const pass=newPassword.trim();
+    if(pass.length<6){ setAuthErr("Password must be at least 6 characters."); return; }
+    setAuthBusy(true); setAuthErr("");
+    const {error}=await sb.auth.updateUser({password:pass});
+    setAuthBusy(false);
+    if(error){ setAuthErr(error.message); return; }
+    setRecoveryMode(false); setNewPassword("");
+    const {data}=await sb.auth.getSession();
+    if(data.session) await loadUserData(data.session.user);
+  }
   async function saveSession(rep,framesArr){
     if(!userId) return;
     const id=crypto.randomUUID();
@@ -635,21 +664,45 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
 
         {error && step!=="analyzing" && (<div style={{background:"rgba(255,106,61,0.12)",border:`1px solid ${C.you}`,color:C.you,padding:12,borderRadius:8,marginTop:18,fontSize:14}}>{error}</div>)}
 
-        {step==="auth" && (
+        {step==="auth" && recoveryMode && (
+          <section className="fr-fade" style={{padding:"60px 0 80px",maxWidth:440,margin:"0 auto"}}>
+            <h1 style={{fontFamily:DISPLAY,fontWeight:700,textTransform:"uppercase",fontSize:32,lineHeight:1,margin:"0 0 10px",textAlign:"center"}}>Set a new password</h1>
+            <p style={{color:C.muted,textAlign:"center",margin:"0 0 28px",fontSize:15,lineHeight:1.5}}>You clicked a password reset link — pick a new password below.</p>
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              <Field label="New password"><input type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} placeholder="At least 6 characters" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&updatePassword()}/></Field>
+              {authErr && <div style={{color:C.you,fontSize:13}}>{authErr}</div>}
+              <button className="fr-btn" disabled={authBusy} onClick={updatePassword} style={{...btnSolid,justifyContent:"center",opacity:authBusy?0.6:1,cursor:authBusy?"not-allowed":"pointer"}}>{authBusy?"Working…":"Save new password →"}</button>
+            </div>
+          </section>
+        )}
+
+        {step==="auth" && !recoveryMode && (
           <section className="fr-fade" style={{padding:"60px 0 80px",maxWidth:440,margin:"0 auto"}}>
             <h1 style={{fontFamily:DISPLAY,fontWeight:700,textTransform:"uppercase",fontSize:40,lineHeight:1,margin:"0 0 10px",textAlign:"center"}}>Welcome to <span style={{color:C.legend}}>LegendSports</span></h1>
             <p style={{color:C.muted,textAlign:"center",margin:"0 0 28px",fontSize:15,lineHeight:1.5}}>Create an account to save your sessions and track progress across any device.</p>
-            <div style={{display:"flex",gap:8,marginBottom:22,justifyContent:"center"}}>
+            {!authForgot && (<div style={{display:"flex",gap:8,marginBottom:22,justifyContent:"center"}}>
               {[["signin","Log in"],["signup","Sign up"]].map(([k,lab])=>(<button key={k} className="fr-chip" onClick={()=>{setAuthMode(k);setAuthErr("");}} style={{background:authMode===k?C.you:"transparent",color:authMode===k?C.ink:C.chalk,border:`1px solid ${authMode===k?C.you:C.line}`,borderRadius:20,padding:"8px 20px",fontSize:13,cursor:"pointer",fontFamily:DISPLAY,letterSpacing:1,textTransform:"uppercase"}}>{lab}</button>))}
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:16}}>
-              {authMode==="signup" && (<Field label="Username (shown on your posts)"><input value={authUsername} onChange={e=>setAuthUsername(e.target.value)} placeholder="e.g. Sai" style={inputStyle}/></Field>)}
-              <Field label="Email"><input type="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&(authMode==="signup"?doSignUp():doSignIn())}/></Field>
-              <Field label="Password"><input type="password" value={authPass} onChange={e=>setAuthPass(e.target.value)} placeholder="At least 6 characters" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&(authMode==="signup"?doSignUp():doSignIn())}/></Field>
-              {authErr && <div style={{color:C.you,fontSize:13}}>{authErr}</div>}
-              <button className="fr-btn" disabled={authBusy} onClick={authMode==="signup"?doSignUp:doSignIn} style={{...btnSolid,justifyContent:"center",opacity:authBusy?0.6:1,cursor:authBusy?"not-allowed":"pointer"}}>{authBusy?"Working…":authMode==="signup"?"Create account →":"Log in →"}</button>
-              <div style={{color:C.muted,fontSize:11.5,lineHeight:1.5,textAlign:"center"}}>Your account and training history are saved securely in the cloud and follow you across devices. Your username is public; your contact info and location stay private.</div>
-            </div>
+            </div>)}
+            {authForgot ? (
+              <div style={{display:"flex",flexDirection:"column",gap:16}}>
+                <p style={{color:C.muted,fontSize:14,lineHeight:1.5,margin:0}}>Enter your email and we'll send you a link to reset your password.</p>
+                <Field label="Email"><input type="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&sendPasswordReset()}/></Field>
+                {authErr && <div style={{color:C.you,fontSize:13}}>{authErr}</div>}
+                {resetSent && <div style={{color:C.good,fontSize:13}}>✓ Check your email for a reset link.</div>}
+                <button className="fr-btn" disabled={authBusy} onClick={sendPasswordReset} style={{...btnSolid,justifyContent:"center",opacity:authBusy?0.6:1,cursor:authBusy?"not-allowed":"pointer"}}>{authBusy?"Working…":"Send reset link →"}</button>
+                <button className="fr-btn" onClick={()=>{setAuthForgot(false);setResetSent(false);setAuthErr("");}} style={{background:"transparent",color:C.chalk,border:"none",cursor:"pointer",fontSize:13,textAlign:"center"}}>← Back to log in</button>
+              </div>
+            ) : (
+              <div style={{display:"flex",flexDirection:"column",gap:16}}>
+                {authMode==="signup" && (<Field label="Username (shown on your posts)"><input value={authUsername} onChange={e=>setAuthUsername(e.target.value)} placeholder="e.g. Sai" style={inputStyle}/></Field>)}
+                <Field label="Email"><input type="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&(authMode==="signup"?doSignUp():doSignIn())}/></Field>
+                <Field label="Password"><input type="password" value={authPass} onChange={e=>setAuthPass(e.target.value)} placeholder="At least 6 characters" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&(authMode==="signup"?doSignUp():doSignIn())}/></Field>
+                {authMode==="signin" && (<button className="fr-btn" onClick={()=>{setAuthForgot(true);setAuthErr("");}} style={{background:"transparent",color:C.you,border:"none",cursor:"pointer",fontSize:13,textAlign:"right",padding:0}}>Forgot password?</button>)}
+                {authErr && <div style={{color:C.you,fontSize:13}}>{authErr}</div>}
+                <button className="fr-btn" disabled={authBusy} onClick={authMode==="signup"?doSignUp:doSignIn} style={{...btnSolid,justifyContent:"center",opacity:authBusy?0.6:1,cursor:authBusy?"not-allowed":"pointer"}}>{authBusy?"Working…":authMode==="signup"?"Create account →":"Log in →"}</button>
+                <div style={{color:C.muted,fontSize:11.5,lineHeight:1.5,textAlign:"center"}}>Your account and training history are saved securely in the cloud and follow you across devices. Your username is public; your contact info and location stay private.</div>
+              </div>
+            )}
           </section>
         )}
 
