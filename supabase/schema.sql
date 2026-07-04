@@ -143,3 +143,69 @@ create table public.feedback (
 alter table public.feedback enable row level security;
 create policy "Users can insert own feedback" on public.feedback for insert with check (auth.uid() = user_id);
 create policy "Users can view own feedback" on public.feedback for select using (auth.uid() = user_id);
+
+-- teams + realtime chat (only visible to teammates, never public)
+create table public.teams (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  sport text,
+  code text unique not null,
+  owner uuid references public.profiles(id) on delete cascade not null,
+  created_at timestamptz default now()
+);
+alter table public.teams enable row level security;
+create policy "Members can view their teams" on public.teams for select using (
+  exists (select 1 from public.team_members tm where tm.team_id = teams.id and tm.user_id = auth.uid())
+);
+
+create table public.team_members (
+  team_id uuid references public.teams(id) on delete cascade not null,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  joined_at timestamptz default now(),
+  primary key (team_id, user_id)
+);
+alter table public.team_members enable row level security;
+create policy "Members can view their team roster" on public.team_members for select using (
+  exists (select 1 from public.team_members me where me.team_id = team_members.team_id and me.user_id = auth.uid())
+);
+create policy "Users can leave a team" on public.team_members for delete using (user_id = auth.uid());
+
+create table public.team_messages (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid references public.teams(id) on delete cascade not null,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  text text not null,
+  created_at timestamptz default now()
+);
+alter table public.team_messages enable row level security;
+create policy "Members can view their team messages" on public.team_messages for select using (
+  exists (select 1 from public.team_members tm where tm.team_id = team_messages.team_id and tm.user_id = auth.uid())
+);
+create policy "Members can send messages to their teams" on public.team_messages for insert with check (
+  user_id = auth.uid() and exists (select 1 from public.team_members tm where tm.team_id = team_messages.team_id and tm.user_id = auth.uid())
+);
+
+-- create_team/join_team run with elevated privilege (security definer) so they can
+-- create the team row AND the membership row together, since regular users are never
+-- allowed to insert into teams/team_members directly (only via these two functions).
+create or replace function public.create_team(p_name text, p_sport text) returns public.teams
+language plpgsql security definer set search_path = public as $$
+declare v_code text; v_team public.teams;
+begin
+  v_code := upper(substr(md5(random()::text),1,5));
+  insert into public.teams (name, sport, code, owner) values (p_name, p_sport, v_code, auth.uid()) returning * into v_team;
+  insert into public.team_members (team_id, user_id) values (v_team.id, auth.uid());
+  return v_team;
+end; $$;
+
+create or replace function public.join_team(p_code text) returns public.teams
+language plpgsql security definer set search_path = public as $$
+declare v_team public.teams;
+begin
+  select * into v_team from public.teams where code = upper(p_code);
+  if not found then raise exception 'No team found with that code.'; end if;
+  insert into public.team_members (team_id, user_id) values (v_team.id, auth.uid()) on conflict do nothing;
+  return v_team;
+end; $$;
+
+alter publication supabase_realtime add table public.team_messages;
