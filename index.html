@@ -4,8 +4,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>LegendSports — pose analysis</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23FF6A3D'/%3E%3Ctext x='32' y='43' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='30' text-anchor='middle' fill='%2310130F'%3ELS%3C/text%3E%3C/svg%3E" />
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23FF6A3D'/%3E%3Ctext x='32' y='43' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='30' text-anchor='middle' fill='%2310130F'%3ELS%3C/text%3E%3C/svg%3E" />
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
   html,body{margin:0;padding:0;background:#10130F;}
@@ -35,13 +33,11 @@
 <script src="https://unpkg.com/@babel/standalone@7/babel.min.js" crossorigin></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js" crossorigin></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js" crossorigin></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin></script>
 
 <script>
   if(!window.React||!window.ReactDOM)frShowErr('React did not load — connect to the internet and reload.');
   if(!window.Babel)frShowErr('Babel did not load — connect to the internet and reload, or use Chrome.');
   if(!window.tf||!window.poseDetection)frShowErr('The pose-detection library did not load — connect to the internet and reload.');
-  if(!window.supabase)frShowErr('The backend library did not load — connect to the internet and reload.');
 </script>
 
 <script type="text/babel" data-presets="react">
@@ -62,10 +58,22 @@ const SPORTS = {
 };
 const LEVELS = ["Just starting","Recreational","Competitive / club","Elite amateur"];
 
-const SUPABASE_URL="https://oxaiyiijfblgittjimyr.supabase.co";
-const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94YWl5aWlqZmJsZ2l0dGppbXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMjEyNTEsImV4cCI6MjA5ODU5NzI1MX0.zsX3K02zMPzxYvmwTiixGDzx4nGDuuw6hpmsK8-exQ0";
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const STORE_KEY="legendsports_v1";
+const COMMUNITY_KEY="legendsports_community_v1";
+function loadCommunity(){ try{ return JSON.parse(localStorage.getItem(COMMUNITY_KEY))||[]; }catch(e){ return []; } }
+function saveCommunity(a){ try{ localStorage.setItem(COMMUNITY_KEY,JSON.stringify(a)); return true; }catch(e){ return false; } }
+const FEED_KEY="legendsports_feed_v1";
+function loadFeed(){ try{ return JSON.parse(localStorage.getItem(FEED_KEY))||[]; }catch(e){ return []; } }
+function saveFeed(a){ try{ localStorage.setItem(FEED_KEY,JSON.stringify(a)); return true; }catch(e){ return false; } }
+const FEEDBACK_KEY="legendsports_feedback_v1";
+function loadFeedback(){ try{ return JSON.parse(localStorage.getItem(FEEDBACK_KEY))||[]; }catch(e){ return []; } }
+function saveFeedback(a){ try{ localStorage.setItem(FEEDBACK_KEY,JSON.stringify(a)); return true; }catch(e){ return false; } }
 const DEV_EMAIL=""; // set this to your email to receive feedback as a pre-filled message
+const TEAMS_KEY="legendsports_teams_v1";
+function loadTeams(){ try{ return JSON.parse(localStorage.getItem(TEAMS_KEY))||[]; }catch(e){ return []; } }
+function saveTeams(a){ try{ localStorage.setItem(TEAMS_KEY,JSON.stringify(a)); return true; }catch(e){ return false; } }
+function loadStore(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{profiles:{},current:null}; }catch(e){ return {profiles:{},current:null}; } }
+function saveStore(s){ try{ localStorage.setItem(STORE_KEY,JSON.stringify(s)); return true; }catch(e){ return false; } }
 function fmtDate(iso){ try{ return new Date(iso).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})+" · "+new Date(iso).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}); }catch(e){ return iso; } }
 const GRADE_RANK={A:12,"A-":11,"B+":10,B:9,"B-":8,"C+":7,C:6,"C-":5,"D+":4,D:3,"—":0};
 function rankGrade(g){ return GRADE_RANK[g]||0; }
@@ -417,20 +425,13 @@ function App(){
   const streamRef=useRef(null), recorderRef=useRef(null), chunksRef=useRef([]), liveRef=useRef(null);
 
   const [profile,setProfile]=useState(null);
-  const [userId,setUserId]=useState(null);
   const [sessions,setSessions]=useState([]);
-  const [authMode,setAuthMode]=useState("signin");
-  const [authEmail,setAuthEmail]=useState("");
+  const [authName,setAuthName]=useState("");
   const [authPass,setAuthPass]=useState("");
-  const [authUsername,setAuthUsername]=useState("");
   const [authErr,setAuthErr]=useState("");
-  const [authBusy,setAuthBusy]=useState(false);
-  const [showPass,setShowPass]=useState(false);
   const [recruit,setRecruit]=useState({});
   const [coachEmail,setCoachEmail]=useState("");
   const [recruitTab,setRecruitTab]=useState("mine"); const [scoutQuery,setScoutQuery]=useState(""); const [scoutSport,setScoutSport]=useState("All");
-  const [scoutAthletes,setScoutAthletes]=useState([]);
-  const recruitSaveTimer=useRef(null);
   const [feedQuery,setFeedQuery]=useState("");
   const [community,setCommunity]=useState([]);
   const [qTitle,setQTitle]=useState(""); const [qBody,setQBody]=useState(""); const [qSport,setQSport]=useState("General");
@@ -441,6 +442,12 @@ function App(){
   const [feedRecording,setFeedRecording]=useState(false); const [feedRecErr,setFeedRecErr]=useState(""); const [feedRecSecs,setFeedRecSecs]=useState(0); const [recordedUrl,setRecordedUrl]=useState("");
   const feedStreamRef=useRef(null),feedRecRef=useRef(null),feedChunksRef=useRef([]),feedLiveRef=useRef(null);
   const [mirror,setMirror]=useState(true);
+  const [teams,setTeams]=useState([]); const [teamName,setTeamName]=useState(""); const [teamSport,setTeamSport]=useState("Basketball"); const [joinCode,setJoinCode]=useState(""); const [teamErr,setTeamErr]=useState(""); const [openTeam,setOpenTeam]=useState(null); const [teamMsg,setTeamMsg]=useState("");
+  useEffect(()=>{ setTeams(loadTeams()); },[]);
+  function createTeam(){ const n=teamName.trim(); if(!n)return; const code=Math.random().toString(36).slice(2,7).toUpperCase(); const t={id:Date.now(),name:n,sport:teamSport,code,owner:profile,members:[profile],messages:[]}; const next=[t,...loadTeams()]; saveTeams(next); setTeams(next); setTeamName(""); setTeamErr(""); setOpenTeam(t.id); }
+  function joinTeam(){ const c=joinCode.trim().toUpperCase(); if(!c)return; const all=loadTeams(); const i=all.findIndex(x=>x.code===c); if(i<0){ setTeamErr("No team found with that code."); return; } if(!all[i].members.includes(profile)) all[i].members.push(profile); saveTeams(all); setTeams(all); setJoinCode(""); setTeamErr(""); setOpenTeam(all[i].id); }
+  function postTeamMsg(){ if(!openTeam)return; const txt=teamMsg.trim(); if(!txt)return; const all=loadTeams(); const i=all.findIndex(x=>x.id===openTeam); if(i<0)return; all[i].messages=[...(all[i].messages||[]),{id:Date.now(),author:profile,text:txt,date:new Date().toISOString()}]; saveTeams(all); setTeams(all); setTeamMsg(""); }
+  function leaveTeam(id){ const all=loadTeams(); const i=all.findIndex(x=>x.id===id); if(i<0)return; all[i].members=(all[i].members||[]).filter(m=>m!==profile); saveTeams(all); setTeams(all); setOpenTeam(null); }
 
   useEffect(()=>{ if(step==="feed"&&feedMode==="record") startFeedCam(); else stopFeedCam(); return ()=>stopFeedCam(); },[step,feedMode]);
   useEffect(()=>{ if(!feedRecording)return; const id=setInterval(()=>setFeedRecSecs(s=>s+1),1000); return ()=>clearInterval(id); },[feedRecording]);
@@ -462,16 +469,13 @@ function App(){
   }
   function stopFeedRec(){ if(feedRecRef.current&&feedRecRef.current.state!=="inactive")feedRecRef.current.stop(); }
 
-  async function fetchCommunity(){ const {data}=await sb.from('questions').select('*, profiles(username), answers(*, profiles(username))').order('created_at',{ascending:false}).limit(200); setCommunity(data||[]); }
-  async function fetchFeed(){ const {data}=await sb.from('feed_posts').select('*, profiles(username)').order('created_at',{ascending:false}).limit(200); setFeed(data||[]); }
-  async function fetchFeedback(){ if(!userId)return; const {data}=await sb.from('feedback').select('*').eq('user_id',userId).order('created_at',{ascending:false}).limit(30); setFeedback(data||[]); }
-  useEffect(()=>{ if(!userId)return; fetchCommunity(); fetchFeed(); fetchFeedback(); },[userId]);
-  async function postQuestion(){ const t=qTitle.trim(); if(!t||!userId)return; const {data,error}=await sb.from('questions').insert({user_id:userId,sport:qSport,title:t,body:qBody.trim()}).select().single(); if(error)return; setQTitle(""); setQBody(""); await fetchCommunity(); setOpenQ(data.id); }
-  async function postAnswer(qid){ const txt=(answerDrafts[qid]||"").trim(); if(!txt||!userId)return; await sb.from('answers').insert({question_id:qid,user_id:userId,body:txt}); setAnswerDrafts(d=>({...d,[qid]:""})); await fetchCommunity(); }
-  async function deleteQuestion(qid){ if(!userId)return; await sb.from('questions').delete().eq('id',qid).eq('user_id',userId); await fetchCommunity(); }
-  async function postClip(){ const t=fTitle.trim(); const l=feedMode==="record"?recordedUrl:fLink.trim(); if(!t||!l||!userId)return; await sb.from('feed_posts').insert({user_id:userId,title:t,link:l,description:fDesc.trim(),format:fFormat}); setFTitle(""); setFLink(""); setFDesc(""); setRecordedUrl(""); setFeedMode("link"); await fetchFeed(); }
-  async function deleteClip(id){ if(!userId)return; await sb.from('feed_posts').delete().eq('id',id).eq('user_id',userId); await fetchFeed(); }
-  async function submitFeedback(){ const m=fbMsg.trim(); if(!m||!userId)return; await sb.from('feedback').insert({user_id:userId,category:fbCat,message:m}); setFbMsg(""); setFbSent(true); await fetchFeedback(); if(DEV_EMAIL){ window.location.href=`mailto:${DEV_EMAIL}?subject=${encodeURIComponent("LegendSports feedback: "+fbCat)}&body=${encodeURIComponent(m+"\n\n— "+(profile||"Anon"))}`; } }
+  useEffect(()=>{ setCommunity(loadCommunity()); setFeed(loadFeed()); setFeedback(loadFeedback()); },[]);
+  function postQuestion(){ const t=qTitle.trim(); if(!t)return; const q={id:Date.now(),author:profile||"Anon",sport:qSport,title:t,body:qBody.trim(),date:new Date().toISOString(),answers:[]}; const next=[q,...loadCommunity()].slice(0,200); saveCommunity(next); setCommunity(next); setQTitle(""); setQBody(""); setOpenQ(q.id); }
+  function postAnswer(qid){ const txt=(answerDrafts[qid]||"").trim(); if(!txt)return; const all=loadCommunity(); const i=all.findIndex(x=>x.id===qid); if(i<0)return; all[i].answers=[...(all[i].answers||[]),{id:Date.now(),author:profile||"Anon",body:txt,date:new Date().toISOString()}]; saveCommunity(all); setCommunity(all); setAnswerDrafts(d=>({...d,[qid]:""})); }
+  function deleteQuestion(qid){ const next=loadCommunity().filter(x=>x.id!==qid); saveCommunity(next); setCommunity(next); }
+  function postClip(){ const t=fTitle.trim(); const l=feedMode==="record"?recordedUrl:fLink.trim(); if(!t||!l){ return; } const p={id:Date.now(),author:profile||"Anon",title:t,link:l,desc:fDesc.trim(),format:fFormat,date:new Date().toISOString(),recorded:feedMode==="record"}; const next=[p,...loadFeed()].slice(0,200); saveFeed(next); setFeed(next); setFTitle(""); setFLink(""); setFDesc(""); setRecordedUrl(""); setFeedMode("link"); }
+  function deleteClip(id){ const next=loadFeed().filter(x=>x.id!==id); saveFeed(next); setFeed(next); }
+  function submitFeedback(){ const m=fbMsg.trim(); if(!m)return; const entry={id:Date.now(),author:profile||"Anon",cat:fbCat,msg:m,date:new Date().toISOString()}; const next=[entry,...loadFeedback()].slice(0,300); saveFeedback(next); setFeedback(next); setFbMsg(""); setFbSent(true); if(DEV_EMAIL){ window.location.href=`mailto:${DEV_EMAIL}?subject=${encodeURIComponent("LegendSports feedback: "+fbCat)}&body=${encodeURIComponent(m+"\n\n— "+(profile||"Anon"))}`; } }
   function videoEmbed(link){
     if(!link) return null;
     if(link.startsWith("blob:")) return <video src={link} controls style={{width:"100%",borderRadius:8,maxHeight:380,background:"#000"}}/>;
@@ -481,72 +485,30 @@ function App(){
     return <a href={link} target="_blank" rel="noopener noreferrer" style={{color:C.you,fontSize:14}}>Watch ↗ {link}</a>;
   }
 
-  async function loadUserData(user){
-    setUserId(user.id);
-    const {data:prof}=await sb.from('profiles').select('username').eq('id',user.id).maybeSingle();
-    setProfile((prof&&prof.username)||user.email);
-    const {data:sess}=await sb.from('sessions').select('*').eq('user_id',user.id).order('created_at',{ascending:false}).limit(30);
-    setSessions(sess||[]);
-    const {data:rd}=await sb.from('recruit_details').select('*').eq('id',user.id).maybeSingle();
-    setRecruit(rd||{});
-    setAuthEmail(""); setAuthPass(""); setAuthUsername(""); setAuthErr(""); setAuthBusy(false);
-    setStep("home");
-  }
-  useEffect(()=>{
-    sb.auth.getSession().then(({data})=>{ if(data.session) loadUserData(data.session.user); else setStep("auth"); });
-  },[]);
+  useEffect(()=>{ const s=loadStore(); if(s.current && s.profiles[s.current]){ setProfile(s.current); setSessions(s.profiles[s.current].sessions||[]); setRecruit(s.profiles[s.current].recruit||{}); } else { setStep("auth"); } },[]);
 
-  function setRecruitField(k,v){
-    const r={...recruit,[k]:v}; setRecruit(r);
-    if(!userId)return;
-    if(recruitSaveTimer.current)clearTimeout(recruitSaveTimer.current);
-    recruitSaveTimer.current=setTimeout(()=>{ sb.from('recruit_details').upsert({id:userId,...r}); },600);
-  }
+  function saveRecruit(next){ const r=next||recruit; setRecruit(r); const s=loadStore(); if(s.profiles[profile]){ s.profiles[profile].recruit=r; saveStore(s); } }
+  function setRecruitField(k,v){ const r={...recruit,[k]:v}; setRecruit(r); const s=loadStore(); if(s.profiles[profile]){ s.profiles[profile].recruit=r; saveStore(s); } }
 
-  async function doSignUp(){
-    const email=authEmail.trim(), pass=authPass, uname=authUsername.trim();
-    if(!email||!pass||!uname){ setAuthErr("Fill in email, password, and a username."); return; }
-    setAuthBusy(true); setAuthErr("");
-    const {data,error}=await sb.auth.signUp({email,password:pass,options:{data:{username:uname}}});
-    setAuthBusy(false);
-    if(error){ setAuthErr(error.message); return; }
-    if(!data.session){ setAuthErr("Account created — please log in below."); setAuthMode("signin"); return; }
-    await loadUserData(data.session.user);
+  function doAuth(){
+    const name=authName.trim(); if(!name){ setAuthErr("Enter a name to continue."); return; }
+    const s=loadStore();
+    if(s.profiles[name]){ if(s.profiles[name].passcode && s.profiles[name].passcode!==authPass.trim()){ setAuthErr("That name has a passcode and it didn't match."); return; } }
+    else { s.profiles[name]={ passcode:authPass.trim()||"", sessions:[] }; }
+    s.current=name; saveStore(s);
+    setProfile(name); setSessions(s.profiles[name].sessions||[]); setRecruit(s.profiles[name].recruit||{}); setAuthName(""); setAuthPass(""); setAuthErr(""); setStep("home");
   }
-  async function doSignIn(){
-    const email=authEmail.trim(), pass=authPass;
-    if(!email||!pass){ setAuthErr("Enter your email and password."); return; }
-    setAuthBusy(true); setAuthErr("");
-    const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
-    setAuthBusy(false);
-    if(error){ setAuthErr(error.message); return; }
-    await loadUserData(data.session.user);
-  }
-  async function signOut(){ await sb.auth.signOut(); setProfile(null); setUserId(null); setSessions([]); setRecruit({}); setStep("auth"); }
-  async function saveSession(rep,framesArr){
-    if(!userId) return;
-    const id=crypto.randomUUID();
-    const row={ id, user_id:userId, sport, move, legend, level, grade:rep.grade, report:rep, frames:framesArr||[] };
-    const {error}=await sb.from('sessions').insert(row);
-    if(error) return;
-    await sb.from('session_summaries').insert({ id, user_id:userId, sport, move, grade:rep.grade });
-    setSessions(s=>[{...row,created_at:new Date().toISOString()},...s].slice(0,30));
+  function signOut(){ const s=loadStore(); s.current=null; saveStore(s); setProfile(null); setSessions([]); setStep("auth"); }
+  function saveSession(rep,framesArr){
+    if(!profile) return;
+    const s=loadStore(); if(!s.profiles[profile]) s.profiles[profile]={passcode:"",sessions:[]};
+    const sess={ id:Date.now(), date:new Date().toISOString(), sport, move, legend, level, grade:rep.grade, report:rep, frames:framesArr||[] };
+    s.profiles[profile].sessions=[sess,...(s.profiles[profile].sessions||[])].slice(0,30);
+    if(!saveStore(s)){ s.profiles[profile].sessions=s.profiles[profile].sessions.map(x=>({...x,frames:[]})); saveStore(s); }
+    setSessions(s.profiles[profile].sessions);
   }
   function openSession(sess){ setReport(sess.report); setFrames(sess.frames||[]); setMove(sess.move); setLegend(sess.legend); setSport(sess.sport); setStep("report"); }
-  async function deleteSession(id){
-    if(!userId)return;
-    await sb.from('sessions').delete().eq('id',id).eq('user_id',userId);
-    await sb.from('session_summaries').delete().eq('id',id).eq('user_id',userId);
-    setSessions(s=>s.filter(x=>x.id!==id));
-  }
-  async function fetchScoutData(){
-    const {data:profs}=await sb.from('profiles').select('id,username');
-    const {data:summaries}=await sb.from('session_summaries').select('user_id,sport,move,grade,created_at').order('created_at',{ascending:false});
-    const byUser={};
-    (summaries||[]).forEach(s=>{ (byUser[s.user_id]=byUser[s.user_id]||[]).push(s); });
-    setScoutAthletes((profs||[]).map(p=>({ id:p.id, username:p.username, stats:recruitStats(byUser[p.id]||[]) })));
-  }
-  useEffect(()=>{ if(step==="recruit"&&recruitTab==="scout") fetchScoutData(); },[step,recruitTab]);
+  function deleteSession(id){ const s=loadStore(); if(s.profiles[profile]){ s.profiles[profile].sessions=(s.profiles[profile].sessions||[]).filter(x=>x.id!==id); saveStore(s); setSessions(s.profiles[profile].sessions); } }
 
   useEffect(()=>{ if(step==="record")startCamera(); return ()=>{ if(step==="record")stopCamera(); }; },[step]);
   useEffect(()=>{ if(!recording)return; const id=setInterval(()=>setRecSecs(s=>s+1),1000); return ()=>clearInterval(id); },[recording]);
@@ -628,33 +590,36 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
               <button className="fr-btn" onClick={()=>setStep("community")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Community</button>
               <button className="fr-btn" onClick={()=>setStep("feed")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Feed</button>
               <button className="fr-btn" onClick={()=>setStep("feedback")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Feedback</button>
+              <button className="fr-btn" onClick={()=>{setOpenTeam(null);setStep("teams");}} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Teams</button>
               <span style={{color:C.muted}}>{profile}</span>
               <button className="fr-btn" onClick={signOut} style={{background:"transparent",color:C.you,border:"none",cursor:"pointer",fontSize:13}}>Switch</button>
             </div>
           ) : (
-            <span style={{color:C.muted,fontSize:13}}>Cloud account · syncs across devices</span>
+            <span style={{color:C.muted,fontSize:13}}>On-device pose tracking · no key</span>
           )}
         </header>
 
         {error && step!=="analyzing" && (<div style={{background:"rgba(255,106,61,0.12)",border:`1px solid ${C.you}`,color:C.you,padding:12,borderRadius:8,marginTop:18,fontSize:14}}>{error}</div>)}
 
-        {step==="auth" && (
+        {step==="auth" && (()=>{ const existing=Object.keys(loadStore().profiles); return (
           <section className="fr-fade" style={{padding:"60px 0 80px",maxWidth:440,margin:"0 auto"}}>
             <h1 style={{fontFamily:DISPLAY,fontWeight:700,textTransform:"uppercase",fontSize:40,lineHeight:1,margin:"0 0 10px",textAlign:"center"}}>Welcome to <span style={{color:C.legend}}>LegendSports</span></h1>
-            <p style={{color:C.muted,textAlign:"center",margin:"0 0 28px",fontSize:15,lineHeight:1.5}}>Create an account to save your sessions and track progress across any device.</p>
-            <div style={{display:"flex",gap:8,marginBottom:22,justifyContent:"center"}}>
-              {[["signin","Log in"],["signup","Sign up"]].map(([k,lab])=>(<button key={k} className="fr-chip" onClick={()=>{setAuthMode(k);setAuthErr("");}} style={{background:authMode===k?C.you:"transparent",color:authMode===k?C.ink:C.chalk,border:`1px solid ${authMode===k?C.you:C.line}`,borderRadius:20,padding:"8px 20px",fontSize:13,cursor:"pointer",fontFamily:DISPLAY,letterSpacing:1,textTransform:"uppercase"}}>{lab}</button>))}
-            </div>
+            <p style={{color:C.muted,textAlign:"center",margin:"0 0 28px",fontSize:15,lineHeight:1.5}}>Create a profile to save your sessions and track progress over time.</p>
+            {existing.length>0 && (
+              <div style={{marginBottom:22}}>
+                <div style={{fontSize:12,letterSpacing:1,textTransform:"uppercase",color:C.muted,marginBottom:8,fontFamily:DISPLAY}}>Continue as</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:8}}>{existing.map(n=>(<button key={n} className="fr-chip" onClick={()=>setAuthName(n)} style={{background:authName===n?C.you:"transparent",color:authName===n?C.ink:C.chalk,border:`1px solid ${authName===n?C.you:C.line}`,borderRadius:20,padding:"7px 14px",fontSize:13,cursor:"pointer"}}>{n}</button>))}</div>
+              </div>
+            )}
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
-              {authMode==="signup" && (<Field label="Username (shown on your posts)"><input value={authUsername} onChange={e=>setAuthUsername(e.target.value)} placeholder="e.g. Sai" style={inputStyle}/></Field>)}
-              <Field label="Email"><input type="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&(authMode==="signup"?doSignUp():doSignIn())}/></Field>
-              <Field label="Password"><div style={{position:"relative"}}><input type={showPass?"text":"password"} value={authPass} onChange={e=>setAuthPass(e.target.value)} placeholder="At least 6 characters" style={{...inputStyle,paddingRight:64}} onKeyDown={e=>e.key==="Enter"&&(authMode==="signup"?doSignUp():doSignIn())}/><button type="button" className="fr-btn" onClick={()=>setShowPass(s=>!s)} style={{position:"absolute",right:4,top:4,bottom:4,background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:12,padding:"0 10px",fontFamily:DISPLAY,letterSpacing:0.5,textTransform:"uppercase"}}>{showPass?"Hide":"Show"}</button></div></Field>
+              <Field label="Name or username"><input value={authName} onChange={e=>setAuthName(e.target.value)} placeholder="e.g. Sai" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&doAuth()}/></Field>
+              <Field label="Passcode (optional)"><input type="password" value={authPass} onChange={e=>setAuthPass(e.target.value)} placeholder="Set one to keep your history private on this device" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&doAuth()}/></Field>
               {authErr && <div style={{color:C.you,fontSize:13}}>{authErr}</div>}
-              <button className="fr-btn" disabled={authBusy} onClick={authMode==="signup"?doSignUp:doSignIn} style={{...btnSolid,justifyContent:"center",opacity:authBusy?0.6:1,cursor:authBusy?"not-allowed":"pointer"}}>{authBusy?"Working…":authMode==="signup"?"Create account →":"Log in →"}</button>
-              <div style={{color:C.muted,fontSize:11.5,lineHeight:1.5,textAlign:"center"}}>Your account and training history are saved securely in the cloud and follow you across devices. Your username is public; your contact info and location stay private.</div>
+              <button className="fr-btn" onClick={doAuth} style={{...btnSolid,justifyContent:"center"}}>Continue →</button>
+              <div style={{color:C.muted,fontSize:11.5,lineHeight:1.5,textAlign:"center"}}>Profiles and history are saved only in this browser on this device — this isn't a secure cloud login, just a local profile.</div>
             </div>
           </section>
-        )}
+        ); })()}
 
         {step==="history" && (
           <section className="fr-fade" style={{padding:"36px 0 80px"}}>
@@ -672,7 +637,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                     <div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:30,color:gradeColor(s.grade),minWidth:46,textAlign:"center"}}>{s.grade}</div>
                     <div style={{flex:1,minWidth:160}}>
                       <div style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:15}}>{s.move} · {s.sport}</div>
-                      <div style={{color:C.muted,fontSize:12.5,marginTop:2}}>vs {s.legend} · {fmtDate(s.created_at)}</div>
+                      <div style={{color:C.muted,fontSize:12.5,marginTop:2}}>vs {s.legend} · {fmtDate(s.date)}</div>
                     </div>
                     <button className="fr-btn" onClick={()=>openSession(s)} style={{background:"transparent",color:C.you,border:`1px solid ${C.you}`,borderRadius:6,padding:"7px 14px",fontSize:13,cursor:"pointer"}}>View</button>
                     <button className="fr-btn" onClick={()=>deleteSession(s.id)} style={{background:"transparent",color:C.muted,border:`1px solid ${C.line}`,borderRadius:6,padding:"7px 12px",fontSize:13,cursor:"pointer"}}>Delete</button>
@@ -745,21 +710,22 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
             </div>
             </>) : (<>
             <div style={{background:"rgba(242,193,78,0.1)",border:`1px solid ${C.legend}`,color:C.legend,padding:12,borderRadius:8,marginBottom:18,fontSize:13,lineHeight:1.5}}>
-              Coach view — real training stats across every athlete using LegendSports. Contact info, location, and GPA stay private to each athlete — to reach one, they share their own printed one-pager with you directly.
+              Coach view — browse athletes who set up a profile on this device. With a backend this becomes a real recruiting board across every athlete.
             </div>
             <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:18}}>
-              <input value={scoutQuery} onChange={e=>setScoutQuery(e.target.value)} placeholder="Search username…" style={{...inputStyle,flex:1,minWidth:200}}/>
+              <input value={scoutQuery} onChange={e=>setScoutQuery(e.target.value)} placeholder="Search name, position, grad year, city…" style={{...inputStyle,flex:1,minWidth:200}}/>
               <div style={{minWidth:160}}><Select value={scoutSport} onChange={setScoutSport} options={["All",...Object.keys(SPORTS)]}/></div>
             </div>
-            {(()=>{ const q=scoutQuery.trim().toLowerCase(); const filtered=scoutAthletes.filter(a=>a.stats.count>0).filter(a=>{ const hay=a.username.toLowerCase(); return (!q||hay.includes(q))&&(scoutSport==="All"||a.stats.sports.includes(scoutSport)); });
-              return filtered.length===0 ? (<div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:30,textAlign:"center",color:C.muted}}>{scoutAthletes.length===0?"No athletes yet.":"No athletes match your search."}</div>) : (
+            {(()=>{ const athletes=Object.entries(loadStore().profiles||{}).map(([name,p])=>({name,recruit:p.recruit||{},stats:recruitStats(p.sessions||[])})); const q=scoutQuery.trim().toLowerCase(); const filtered=athletes.filter(a=>{ const hay=`${a.recruit.fullname||a.name} ${a.recruit.position||""} ${a.recruit.location||""} ${a.recruit.gradYear||""} ${a.stats.sports.join(" ")}`.toLowerCase(); return (!q||hay.includes(q))&&(scoutSport==="All"||a.stats.sports.includes(scoutSport)); });
+              return filtered.length===0 ? (<div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:30,textAlign:"center",color:C.muted}}>{athletes.length===0?"No athlete profiles on this device yet.":"No athletes match your search."}</div>) : (
               <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                {filtered.map(a=>{ const stt=a.stats; return (
-                  <div key={a.id} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:"18px 20px"}}>
+                {filtered.map(a=>{ const rc=a.recruit, stt=a.stats; return (
+                  <div key={a.name} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:"18px 20px"}}>
                     <div style={{display:"flex",justifyContent:"space-between",gap:14,alignItems:"flex-start",flexWrap:"wrap"}}>
                       <div style={{flex:1,minWidth:180}}>
-                        <div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:22,textTransform:"uppercase",lineHeight:1.1}}>{a.username}</div>
-                        <div style={{color:C.legend,fontFamily:DISPLAY,letterSpacing:0.5,textTransform:"uppercase",fontSize:12.5,marginTop:3}}>{stt.sports[0]||"Athlete"}</div>
+                        <div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:22,textTransform:"uppercase",lineHeight:1.1}}>{rc.fullname||a.name}</div>
+                        <div style={{color:C.legend,fontFamily:DISPLAY,letterSpacing:0.5,textTransform:"uppercase",fontSize:12.5,marginTop:3}}>{[rc.position,rc.gradYear&&`Class of ${rc.gradYear}`,stt.sports[0]].filter(Boolean).join(" · ")||"Athlete"}</div>
+                        <div style={{color:C.muted,fontSize:13,marginTop:6}}>{[rc.location,rc.height&&`${rc.height}${rc.weight?` / ${rc.weight}`:""}`,rc.gpa&&`GPA ${rc.gpa}`].filter(Boolean).join(" · ")||"No details added"}</div>
                       </div>
                       {stt.best && (<div style={{textAlign:"center",minWidth:64}}><div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:34,color:gradeColor(stt.best.grade),lineHeight:1}}>{stt.best.grade}</div><div style={{color:C.muted,fontSize:11,marginTop:2}}>top · {stt.best.move}</div></div>)}
                     </div>
@@ -767,6 +733,10 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                       <span>{stt.count} sessions</span><span>{stt.moves} techniques</span>
                       {stt.recent.slice(0,4).map(s=>(<span key={s.id}><b style={{color:gradeColor(s.grade)}}>{s.grade}</b> {s.move}</span>))}
                     </div>
+                    {(rc.highlight||rc.contact)&&(<div style={{marginTop:12,borderTop:`1px solid ${C.line}`,paddingTop:12,fontSize:13,display:"flex",flexDirection:"column",gap:4}}>
+                      {rc.highlight && <div><span style={{color:C.muted}}>Film: </span><a href={rc.highlight} target="_blank" rel="noopener noreferrer" style={{color:C.you,wordBreak:"break-all"}}>{rc.highlight}</a></div>}
+                      {rc.contact && <div><span style={{color:C.muted}}>Contact: </span>{rc.contact}</div>}
+                    </div>)}
                   </div>
                 );})}
               </div>
@@ -784,7 +754,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
               <button className="fr-btn" onClick={()=>setStep("home")} style={{...btnSolid,padding:"10px 18px"}}>← Back</button>
             </div>
             <div style={{background:"rgba(242,193,78,0.1)",border:`1px solid ${C.legend}`,color:C.legend,padding:12,borderRadius:8,marginBottom:22,fontSize:13,lineHeight:1.5}}>
-              Live — everyone using LegendSports can see and answer these questions. Only your username is shown, but don't post personal contact info here.
+              Local preview — posts are saved on this device only, so others can't see or answer them yet. To go live as a real community, this needs a shared backend (ask me to wire one up).
             </div>
 
             <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"20px 22px",marginBottom:24}}>
@@ -809,9 +779,9 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                     <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"flex-start"}}>
                       <div style={{flex:1,cursor:"pointer"}} onClick={()=>setOpenQ(openQ===q.id?null:q.id)}>
                         <div style={{fontSize:16,fontWeight:600,lineHeight:1.4}}>{q.title}</div>
-                        <div style={{color:C.muted,fontSize:12.5,marginTop:4}}>{(q.profiles&&q.profiles.username)||"Anon"} · <span style={{color:C.legend}}>{q.sport}</span> · {fmtDate(q.created_at)} · {(q.answers||[]).length} {(q.answers||[]).length===1?"answer":"answers"}</div>
+                        <div style={{color:C.muted,fontSize:12.5,marginTop:4}}>{q.author} · <span style={{color:C.legend}}>{q.sport}</span> · {fmtDate(q.date)} · {(q.answers||[]).length} {(q.answers||[]).length===1?"answer":"answers"}</div>
                       </div>
-                      {q.user_id===userId && <button className="fr-btn" onClick={()=>deleteQuestion(q.id)} style={{background:"transparent",color:C.muted,border:`1px solid ${C.line}`,borderRadius:6,padding:"5px 10px",fontSize:12,cursor:"pointer"}}>Delete</button>}
+                      {q.author===profile && <button className="fr-btn" onClick={()=>deleteQuestion(q.id)} style={{background:"transparent",color:C.muted,border:`1px solid ${C.line}`,borderRadius:6,padding:"5px 10px",fontSize:12,cursor:"pointer"}}>Delete</button>}
                     </div>
                     {openQ===q.id && (
                       <div style={{marginTop:14,borderTop:`1px solid ${C.line}`,paddingTop:14}}>
@@ -819,7 +789,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                         {(q.answers||[]).map(a=>(
                           <div key={a.id} style={{background:C.panel2,borderRadius:8,padding:"10px 14px",marginBottom:8}}>
                             <div style={{fontSize:14,lineHeight:1.5}}>{a.body}</div>
-                            <div style={{color:C.muted,fontSize:11.5,marginTop:4}}>{(a.profiles&&a.profiles.username)||"Anon"} · {fmtDate(a.created_at)}</div>
+                            <div style={{color:C.muted,fontSize:11.5,marginTop:4}}>{a.author} · {fmtDate(a.date)}</div>
                           </div>
                         ))}
                         <div style={{display:"flex",gap:8,marginTop:10,alignItems:"flex-start"}}>
@@ -842,7 +812,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
               <button className="fr-btn" onClick={()=>setStep("home")} style={{...btnSolid,padding:"10px 18px"}}>← Back</button>
             </div>
             <div style={{background:"rgba(242,193,78,0.1)",border:`1px solid ${C.legend}`,color:C.legend,padding:12,borderRadius:8,marginBottom:22,fontSize:13,lineHeight:1.5}}>
-              Live — clip posts (links) are visible to everyone. Recorded clips still only preview in your own browser tab — posting an actual video file needs video storage, which isn't set up yet.
+              Local preview — clips are saved on this device only. Links (YouTube or direct .mp4) persist; clips you record here play this session but won't survive a reload until there's a backend with video storage.
             </div>
 
             <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"20px 22px",marginBottom:20}}>
@@ -891,7 +861,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
               {["All","Short-form","Long-form"].map(x=>(<button key={x} className="fr-chip" onClick={()=>setFeedFilter(x)} style={{background:feedFilter===x?C.panel2:"transparent",color:feedFilter===x?C.chalk:C.muted,border:`1px solid ${C.line}`,borderRadius:20,padding:"6px 14px",fontSize:13,cursor:"pointer"}}>{x}</button>))}
             </div>
 
-            {(()=>{ const ql=feedQuery.trim().toLowerCase(); const list=feed.filter(p=>(feedFilter==="All"||p.format===feedFilter)&&(!ql||`${p.title} ${p.description||""} ${(p.profiles&&p.profiles.username)||""}`.toLowerCase().includes(ql))); return list.length===0 ? (
+            {(()=>{ const ql=feedQuery.trim().toLowerCase(); const list=feed.filter(p=>(feedFilter==="All"||p.format===feedFilter)&&(!ql||`${p.title} ${p.desc||""} ${p.author}`.toLowerCase().includes(ql))); return list.length===0 ? (
               <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:30,textAlign:"center",color:C.muted}}>No clips yet — post the first one.</div>
             ) : (
               <div style={{display:"flex",flexDirection:"column",gap:16}}>
@@ -900,12 +870,12 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,marginBottom:10}}>
                       <div>
                         <div style={{fontSize:16,fontWeight:600}}>{p.title}</div>
-                        <div style={{color:C.muted,fontSize:12.5,marginTop:3}}>{(p.profiles&&p.profiles.username)||"Anon"} · <span style={{color:p.format==="Short-form"?C.you:C.legend}}>{p.format}</span> · {fmtDate(p.created_at)}</div>
+                        <div style={{color:C.muted,fontSize:12.5,marginTop:3}}>{p.author} · <span style={{color:p.format==="Short-form"?C.you:C.legend}}>{p.format}</span> · {fmtDate(p.date)}</div>
                       </div>
-                      {p.user_id===userId && <button className="fr-btn" onClick={()=>deleteClip(p.id)} style={{background:"transparent",color:C.muted,border:`1px solid ${C.line}`,borderRadius:6,padding:"5px 10px",fontSize:12,cursor:"pointer"}}>Delete</button>}
+                      {p.author===profile && <button className="fr-btn" onClick={()=>deleteClip(p.id)} style={{background:"transparent",color:C.muted,border:`1px solid ${C.line}`,borderRadius:6,padding:"5px 10px",fontSize:12,cursor:"pointer"}}>Delete</button>}
                     </div>
                     {videoEmbed(p.link)}
-                    {p.description && <p style={{margin:"12px 0 0",fontSize:14.5,lineHeight:1.55}}>{p.description}</p>}
+                    {p.desc && <p style={{margin:"12px 0 0",fontSize:14.5,lineHeight:1.55}}>{p.desc}</p>}
                   </div>
                 ))}
               </div>
@@ -919,7 +889,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
               <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:0}}>Send feedback</h2>
               <button className="fr-btn" onClick={()=>setStep("home")} style={{...btnSolid,padding:"10px 18px"}}>← Back</button>
             </div>
-            <p style={{color:C.muted,margin:"0 0 22px",fontSize:15,lineHeight:1.5}}>Tell us what's working, what's broken, or what you'd love to see. {DEV_EMAIL?"Submitting opens a pre-filled email to the team.":"Saved privately to your account — only you (and the developer, via the database) can see it."}</p>
+            <p style={{color:C.muted,margin:"0 0 22px",fontSize:15,lineHeight:1.5}}>Tell us what's working, what's broken, or what you'd love to see. {DEV_EMAIL?"Submitting opens a pre-filled email to the team.":"Saved on this device for now — set a developer email in the file to have submissions emailed to you."}</p>
             <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"20px 22px",marginBottom:20}}>
               <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
                 {["Bug","Idea","Praise","Other"].map(x=>(<button key={x} className="fr-chip" onClick={()=>setFbCat(x)} style={{background:fbCat===x?C.you:"transparent",color:fbCat===x?C.ink:C.chalk,border:`1px solid ${fbCat===x?C.you:C.line}`,borderRadius:20,padding:"7px 16px",fontSize:13,cursor:"pointer"}}>{x}</button>))}
@@ -932,17 +902,93 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
             </div>
             {feedback.length>0 && (
               <div>
-                <div style={{fontSize:12,letterSpacing:1,textTransform:"uppercase",color:C.muted,marginBottom:10,fontFamily:DISPLAY}}>Your recent submissions</div>
+                <div style={{fontSize:12,letterSpacing:1,textTransform:"uppercase",color:C.muted,marginBottom:10,fontFamily:DISPLAY}}>Recent submissions (this device)</div>
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {feedback.slice(0,8).map(f=>(
                     <div key={f.id} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"12px 16px"}}>
-                      <div style={{fontSize:14,lineHeight:1.5}}>{f.message}</div>
-                      <div style={{color:C.muted,fontSize:11.5,marginTop:4}}><span style={{color:C.legend}}>{f.category}</span> · {fmtDate(f.created_at)}</div>
+                      <div style={{fontSize:14,lineHeight:1.5}}>{f.msg}</div>
+                      <div style={{color:C.muted,fontSize:11.5,marginTop:4}}><span style={{color:C.legend}}>{f.cat}</span> · {f.author} · {fmtDate(f.date)}</div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
+          </section>
+        )}
+
+        {step==="teams" && (
+          <section className="fr-fade" style={{padding:"36px 0 80px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",flexWrap:"wrap",gap:10,marginBottom:8}}>
+              <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:0}}>Teams</h2>
+              <button className="fr-btn" onClick={()=>setStep("home")} style={{...btnSolid,padding:"10px 18px"}}>← Back</button>
+            </div>
+            <div style={{background:"rgba(242,193,78,0.1)",border:`1px solid ${C.legend}`,color:C.legend,padding:12,borderRadius:8,marginBottom:22,fontSize:13,lineHeight:1.5}}>
+              Local preview — teams and chat are saved on this device only, so teammates on other devices can't see them yet. Real team chat needs the backend (Supabase realtime).
+            </div>
+
+            {!openTeam ? (<>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:16,marginBottom:24}}>
+                <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"18px 20px"}}>
+                  <h3 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:17,margin:"0 0 12px"}}>Create a team</h3>
+                  <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                    <input value={teamName} onChange={e=>setTeamName(e.target.value)} placeholder="Team name" style={inputStyle}/>
+                    <Select value={teamSport} onChange={setTeamSport} options={Object.keys(SPORTS)}/>
+                    <button className="fr-btn" onClick={createTeam} style={{...btnSolid,padding:"11px 18px"}}>Create</button>
+                  </div>
+                </div>
+                <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"18px 20px"}}>
+                  <h3 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:17,margin:"0 0 12px"}}>Join a team</h3>
+                  <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                    <input value={joinCode} onChange={e=>setJoinCode(e.target.value)} placeholder="Enter team code (e.g. 7QK2P)" style={inputStyle}/>
+                    <button className="fr-btn" onClick={joinTeam} style={{...btnSolid,padding:"11px 18px"}}>Join</button>
+                    {teamErr && <div style={{color:C.you,fontSize:13}}>{teamErr}</div>}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{fontSize:12,letterSpacing:1,textTransform:"uppercase",color:C.muted,marginBottom:10,fontFamily:DISPLAY}}>My teams</div>
+              {teams.filter(t=>(t.members||[]).includes(profile)).length===0 ? (
+                <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:30,textAlign:"center",color:C.muted}}>You're not on a team yet — create one or join with a code.</div>
+              ) : (
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  {teams.filter(t=>(t.members||[]).includes(profile)).map(t=>(
+                    <div key={t.id} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:"14px 18px",display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
+                      <div style={{flex:1,minWidth:160}}>
+                        <div style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:16}}>{t.name}</div>
+                        <div style={{color:C.muted,fontSize:12.5,marginTop:2}}><span style={{color:C.legend}}>{t.sport}</span> · {(t.members||[]).length} {(t.members||[]).length===1?"member":"members"} · code <b style={{color:C.chalk}}>{t.code}</b></div>
+                      </div>
+                      <button className="fr-btn" onClick={()=>setOpenTeam(t.id)} style={{...btnSolid,padding:"9px 16px"}}>Open chat</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>) : (()=>{ const t=teams.find(x=>x.id===openTeam); if(!t) return <div style={{color:C.muted}}>Team not found. <button onClick={()=>setOpenTeam(null)} style={{background:"none",border:"none",color:C.you,cursor:"pointer"}}>Back</button></div>;
+              return (
+              <div>
+                <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"16px 20px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+                  <div>
+                    <div style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:20}}>{t.name}</div>
+                    <div style={{color:C.muted,fontSize:12.5,marginTop:2}}><span style={{color:C.legend}}>{t.sport}</span> · {(t.members||[]).join(", ")} · share code <b style={{color:C.chalk}}>{t.code}</b></div>
+                  </div>
+                  <div style={{display:"flex",gap:8}}>
+                    <button className="fr-btn" onClick={()=>setOpenTeam(null)} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:13}}>All teams</button>
+                    <button className="fr-btn" onClick={()=>leaveTeam(t.id)} style={{background:"transparent",color:C.muted,border:`1px solid ${C.line}`,borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:13}}>Leave</button>
+                  </div>
+                </div>
+                <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"16px 18px",minHeight:220,maxHeight:420,overflowY:"auto",marginBottom:12,display:"flex",flexDirection:"column",gap:10}}>
+                  {(t.messages||[]).length===0 ? (<div style={{color:C.muted,textAlign:"center",margin:"auto"}}>No messages yet — say hey to your team.</div>) : (t.messages||[]).map(m=>(
+                    <div key={m.id} style={{alignSelf:m.author===profile?"flex-end":"flex-start",maxWidth:"78%"}}>
+                      <div style={{background:m.author===profile?C.you:C.panel2,color:m.author===profile?C.ink:C.chalk,borderRadius:12,padding:"9px 13px",fontSize:14.5,lineHeight:1.45}}>{m.text}</div>
+                      <div style={{color:C.muted,fontSize:11,marginTop:3,textAlign:m.author===profile?"right":"left"}}>{m.author} · {fmtDate(m.date)}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <input value={teamMsg} onChange={e=>setTeamMsg(e.target.value)} onKeyDown={e=>e.key==="Enter"&&postTeamMsg()} placeholder="Message your team…" style={{...inputStyle,flex:1}}/>
+                  <button className="fr-btn" onClick={postTeamMsg} style={{...btnSolid,padding:"11px 20px"}}>Send</button>
+                </div>
+              </div>
+            ); })()}
           </section>
         )}
 
