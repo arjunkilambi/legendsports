@@ -177,20 +177,28 @@ alter table public.teams enable row level security;
 alter table public.team_members enable row level security;
 alter table public.team_messages enable row level security;
 
+-- security definer bypasses RLS internally, so checking membership this way
+-- (instead of a plain subquery on team_members inside its own policy) avoids
+-- the "infinite recursion detected in policy for relation team_members" error.
+create or replace function public.is_team_member(p_team_id uuid) returns boolean
+language sql security definer set search_path = public stable as $$
+  select exists (select 1 from public.team_members where team_id = p_team_id and user_id = auth.uid());
+$$;
+
 create policy "Members can view their teams" on public.teams for select using (
-  exists (select 1 from public.team_members tm where tm.team_id = teams.id and tm.user_id = auth.uid())
+  public.is_team_member(id)
 );
 
 create policy "Members can view their team roster" on public.team_members for select using (
-  exists (select 1 from public.team_members me where me.team_id = team_members.team_id and me.user_id = auth.uid())
+  public.is_team_member(team_id)
 );
 create policy "Users can leave a team" on public.team_members for delete using (user_id = auth.uid());
 
 create policy "Members can view their team messages" on public.team_messages for select using (
-  exists (select 1 from public.team_members tm where tm.team_id = team_messages.team_id and tm.user_id = auth.uid())
+  public.is_team_member(team_id)
 );
 create policy "Members can send messages to their teams" on public.team_messages for insert with check (
-  user_id = auth.uid() and exists (select 1 from public.team_members tm where tm.team_id = team_messages.team_id and tm.user_id = auth.uid())
+  user_id = auth.uid() and public.is_team_member(team_id)
 );
 
 -- create_team/join_team run with elevated privilege (security definer) so they can
