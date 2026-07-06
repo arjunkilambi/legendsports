@@ -284,26 +284,14 @@ function torsoLeanDeg(kp,kp3D){
   const sm=mid(pick(kp,"left_shoulder"),pick(kp,"right_shoulder")); const hm=mid(pick(kp,"left_hip"),pick(kp,"right_hip")); if(!sm||!hm)return null; const dx=hm.x-sm.x,dy=hm.y-sm.y; if(dy===0)return null; return Math.abs(Math.atan2(dx,dy))*180/Math.PI;
 }
 
-function analyzeMotion(data, sport, move, legend, level){
-  const P=profileFor(move);
+// Pulls every measurement out of one tracked clip (knee/elbow angles, torso lean,
+// stance width, timing) so the exact same math can run on the athlete's clip and,
+// optionally, a reference clip — enabling a real measured comparison instead of
+// only the idealized legend benchmark.
+function measureClip(data){
   const poses=data.poses;
-
-  // Hard stop: frames came through blank, or no body found at all
   if((data.blankCount||0) > (data.N||24)*0.6 || poses.length===0){
-    return {
-      observed: `⚠ The video frames came through ${poses.length===0?"without a detectable body":"mostly black"} (${data.blankCount||0}/${data.N||24} blank). Nothing was measured — this is NOT a real score.`,
-      grade:"—",
-      summary:"The tracker couldn't read your clip — the frames were blank or no body was visible, so there's nothing to grade. Re-record side-on with your whole body in frame, in good light, using your phone's normal camera (MP4/MOV).",
-      phases:[
-        {name:"Base & balance",score:0,note:"No usable frames to measure."},
-        {name:"Load & power",score:0,note:"No usable frames to measure."},
-        {name:"Range & mechanics",score:0,note:"No usable frames to measure."},
-        {name:"Follow-through",score:0,note:"No usable frames to measure."},
-      ],
-      comparison:[{metric:"Balance",you:0,legend:94},{metric:"Power",you:0,legend:96},{metric:"Finish",you:0,legend:96}],
-      drills:["Re-record side-on with your full body in the frame.","Use a standard MP4/MOV from your phone camera.","Make sure the lighting is good and the camera is steady."],
-      lowTrack:true,
-    };
+    return { lowTrack:true, tracked:poses.length, confPct:0 };
   }
   const avgConf=mean(poses.map(p=>p.conf));
   const usable=poses.filter(p=>p.conf>=0.25);
@@ -350,6 +338,32 @@ function analyzeMotion(data, sport, move, legend, level){
   let peakT=null,peakExt=-1;
   poses.forEach(p=>{ const eb=bestSideElbow(p.kp,p.kp3D); const e=eb.max; if(e!=null&&e>peakExt){ peakExt=e; peakT=p.t; } });
   const dur=data.dur||(poses.length?poses[poses.length-1].t:0);
+
+  return { lowTrack:false, avgConf, usable, tracked, confPct, notSideOn, minKnee, hasKnee, kneeROM, elbowROM, rise, drift, baseWidth, finishElbow, sym, measTorso, peakT, dur };
+}
+
+function analyzeMotion(data, sport, move, legend, level, refData){
+  const P=profileFor(move);
+  const m=measureClip(data);
+
+  // Hard stop: frames came through blank, or no body found at all
+  if(m.lowTrack){
+    return {
+      observed: `⚠ The video frames came through ${m.tracked===0?"without a detectable body":"mostly black"} (${data.blankCount||0}/${data.N||24} blank). Nothing was measured — this is NOT a real score.`,
+      grade:"—",
+      summary:"The tracker couldn't read your clip — the frames were blank or no body was visible, so there's nothing to grade. Re-record side-on with your whole body in frame, in good light, using your phone's normal camera (MP4/MOV).",
+      phases:[
+        {name:"Base & balance",score:0,note:"No usable frames to measure."},
+        {name:"Load & power",score:0,note:"No usable frames to measure."},
+        {name:"Range & mechanics",score:0,note:"No usable frames to measure."},
+        {name:"Follow-through",score:0,note:"No usable frames to measure."},
+      ],
+      comparison:[{metric:"Balance",you:0,legend:94},{metric:"Power",you:0,legend:96},{metric:"Finish",you:0,legend:96}],
+      drills:["Re-record side-on with your full body in the frame.","Use a standard MP4/MOV from your phone camera.","Make sure the lighting is good and the camera is steady."],
+      lowTrack:true,
+    };
+  }
+  const {avgConf,usable,tracked,confPct,notSideOn,minKnee,hasKnee,kneeROM,elbowROM,rise,drift,baseWidth,finishElbow,sym,measTorso,peakT,dur}=m;
 
   // ----- category scores (0..100), hand-tuned -----
   const driftScore=scoreLower(drift,0.02,0.22);
@@ -431,21 +445,34 @@ function analyzeMotion(data, sport, move, legend, level){
     ? `⚠ Tracked ${tracked} frames but average joint confidence was only ${confPct}% — try a closer, full-body, side-on clip in good light for a cleaner read.`
     : `Tracked ${tracked} frames at ${confPct}% avg joint confidence. Deepest knee bend ~${r(minKnee)}°, arm range ~${r(elbowROM)}°, vertical rise ~${rise!=null?(rise*100).toFixed(0):"—"}% of body height.`;
 
-  // ----- specific form comparison vs the closest legend template -----
+  // ----- specific form comparison: a real reference clip if one was given, -----
+  // ----- otherwise the existing idealized legend template (unchanged) -----
   let match=null;
   const measVec={ minKnee:hasKnee?minKnee:null, torso:measTorso, finish:finishElbow, baseW:baseWidth };
   const measuredCount=[measVec.minKnee,measVec.torso,measVec.finish,measVec.baseW].filter(v=>v!=null).length;
   if(!lowTrack && measuredCount>=2){
-    const cands=(SPORTS[sport]&&SPORTS[sport].legends)||[legend];
-    let closest=cands[0], best=Infinity;
-    cands.forEach(n=>{ const d=profDist(measVec,legendProfile(n)); if(d<best){best=d;closest=n;} });
-    const cp=legendProfile(closest); const r2=(x)=>Math.round(x); const lines=[];
-    if(measVec.minKnee!=null){ const dd=measVec.minKnee-cp.minKnee; lines.push(`Knee load: you bend to ~${r2(measVec.minKnee)}°, about ${Math.abs(r2(dd))}° ${dd>0?"less":"more"} than ${closest}'s ~${cp.minKnee}°.`); }
-    if(peakT!=null&&dur){ const ideal=cp.releaseFrac*dur; const dt=peakT-ideal; lines.push(`Release timing: your peak extension lands ~${Math.abs(dt).toFixed(2)}s ${dt>0?"later":"earlier"} than the ${cp.form} benchmark.`); }
-    if(measVec.torso!=null){ const dd=measVec.torso-cp.torsoLean; lines.push(`Torso lean: ~${r2(measVec.torso)}° from vertical, ${Math.abs(r2(dd))}° ${dd>0?"more":"less"} than ${closest}'s ~${cp.torsoLean}°.`); }
-    if(measVec.finish!=null){ const dd=measVec.finish-cp.finishElbow; lines.push(`Follow-through: arm extends to ~${r2(measVec.finish)}°, ${Math.abs(r2(dd))}° ${dd>0?"straighter":"shorter"} than the ~${cp.finishElbow}° benchmark.`); }
-    if(measVec.baseW!=null){ const pct=Math.round((measVec.baseW/cp.baseWidth-1)*100); if(Math.abs(pct)>=4) lines.push(`Stance width: about ${Math.abs(pct)}% ${pct>0?"wider":"narrower"} than ${closest}'s base.`); }
-    match={ legend:closest, form:cp.form, chosen:legend, lines:lines.slice(0,4) };
+    const refM=refData?measureClip(refData):null;
+    if(refM && !refM.lowTrack){
+      const refVec={ minKnee:refM.hasKnee?refM.minKnee:null, torso:refM.measTorso, finish:refM.finishElbow, baseW:refM.baseWidth };
+      const r2=(x)=>Math.round(x); const lines=[];
+      if(measVec.minKnee!=null&&refVec.minKnee!=null){ const dd=measVec.minKnee-refVec.minKnee; lines.push(`Knee load: you bend to ~${r2(measVec.minKnee)}°, about ${Math.abs(r2(dd))}° ${dd>0?"less":"more"} than the reference clip's ~${r2(refVec.minKnee)}°.`); }
+      if(peakT!=null&&dur&&refM.peakT!=null&&refM.dur){ const myFrac=peakT/dur, refFrac=refM.peakT/refM.dur; const dt=(myFrac-refFrac)*dur; lines.push(`Release timing: your peak extension lands ~${Math.abs(dt).toFixed(2)}s ${dt>0?"later":"earlier"} (proportionally) than the reference clip's.`); }
+      if(measVec.torso!=null&&refVec.torso!=null){ const dd=measVec.torso-refVec.torso; lines.push(`Torso lean: ~${r2(measVec.torso)}° from vertical, ${Math.abs(r2(dd))}° ${dd>0?"more":"less"} than the reference clip's ~${r2(refVec.torso)}°.`); }
+      if(measVec.finish!=null&&refVec.finish!=null){ const dd=measVec.finish-refVec.finish; lines.push(`Follow-through: arm extends to ~${r2(measVec.finish)}°, ${Math.abs(r2(dd))}° ${dd>0?"straighter":"shorter"} than the reference clip's ~${r2(refVec.finish)}°.`); }
+      if(measVec.baseW!=null&&refVec.baseW!=null){ const pct=Math.round((measVec.baseW/refVec.baseW-1)*100); if(Math.abs(pct)>=4) lines.push(`Stance width: about ${Math.abs(pct)}% ${pct>0?"wider":"narrower"} than the reference clip's base.`); }
+      match={ legend:null, real:true, form:"your reference clip", chosen:legend, lines:lines.slice(0,4) };
+    } else {
+      const cands=(SPORTS[sport]&&SPORTS[sport].legends)||[legend];
+      let closest=cands[0], best=Infinity;
+      cands.forEach(n=>{ const d=profDist(measVec,legendProfile(n)); if(d<best){best=d;closest=n;} });
+      const cp=legendProfile(closest); const r2=(x)=>Math.round(x); const lines=[];
+      if(measVec.minKnee!=null){ const dd=measVec.minKnee-cp.minKnee; lines.push(`Knee load: you bend to ~${r2(measVec.minKnee)}°, about ${Math.abs(r2(dd))}° ${dd>0?"less":"more"} than ${closest}'s ~${cp.minKnee}°.`); }
+      if(peakT!=null&&dur){ const ideal=cp.releaseFrac*dur; const dt=peakT-ideal; lines.push(`Release timing: your peak extension lands ~${Math.abs(dt).toFixed(2)}s ${dt>0?"later":"earlier"} than the ${cp.form} benchmark.`); }
+      if(measVec.torso!=null){ const dd=measVec.torso-cp.torsoLean; lines.push(`Torso lean: ~${r2(measVec.torso)}° from vertical, ${Math.abs(r2(dd))}° ${dd>0?"more":"less"} than ${closest}'s ~${cp.torsoLean}°.`); }
+      if(measVec.finish!=null){ const dd=measVec.finish-cp.finishElbow; lines.push(`Follow-through: arm extends to ~${r2(measVec.finish)}°, ${Math.abs(r2(dd))}° ${dd>0?"straighter":"shorter"} than the ~${cp.finishElbow}° benchmark.`); }
+      if(measVec.baseW!=null){ const pct=Math.round((measVec.baseW/cp.baseWidth-1)*100); if(Math.abs(pct)>=4) lines.push(`Stance width: about ${Math.abs(pct)}% ${pct>0?"wider":"narrower"} than ${closest}'s base.`); }
+      match={ legend:closest, form:cp.form, chosen:legend, lines:lines.slice(0,4) };
+    }
   }
 
   return { observed, grade, summary, analysis, phases, comparison, plan, match, lowTrack };
@@ -465,6 +492,11 @@ function App(){
   const [step,setStep]=useState("home");
   const [videoUrl,setVideoUrl]=useState(null);
   const [fileName,setFileName]=useState("");
+  const [refVideoUrl,setRefVideoUrl]=useState(null);
+  const [refFileName,setRefFileName]=useState("");
+  const refFileRef=useRef(null);
+  function onRefFile(e){ const f=e.target.files&&e.target.files[0]; if(!f)return; if(refVideoUrl)URL.revokeObjectURL(refVideoUrl); setRefVideoUrl(URL.createObjectURL(f)); setRefFileName(f.name); }
+  function clearRefFile(){ if(refVideoUrl)URL.revokeObjectURL(refVideoUrl); setRefVideoUrl(null); setRefFileName(""); if(refFileRef.current)refFileRef.current.value=""; }
   const [sport,setSport]=useState("Basketball");
   const [legend,setLegend]=useState("Michael Jordan");
   const [move,setMove]=useState("Jump shot");
@@ -703,8 +735,13 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
       setPhase("Tracking your joints frame by frame…");
       const data=await runPose(videoUrl,(p)=>setProgress(p));
       setFrames(data.shots);
+      let refData=null;
+      if(refVideoUrl){
+        setPhase("Tracking the reference clip…");
+        refData=await runPose(refVideoUrl,()=>{});
+      }
       setPhase("Crunching the angles…");
-      let rep=analyzeMotion(data,sport,move,legend,level);
+      let rep=analyzeMotion(data,sport,move,legend,level,refData);
       if(apiKey.trim() && !rep.lowTrack){
         setPhase("AI coach is writing your plan…");
         try{ rep=await enhanceWithAI(rep,apiKey.trim()); }
@@ -714,7 +751,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
     }catch(err){ setError("Analysis failed: "+(err.message||err)+". Try a shorter, clearer clip, and make sure you're online for the first run."); setStep("context"); }
   }
 
-  function reset(){ stopCamera(); setRecording(false); setRecError(""); if(videoUrl)URL.revokeObjectURL(videoUrl); setVideoUrl(null); setFileName(""); setReport(null); setFrames([]); setError(""); setProgress(0); setStep("home"); }
+  function reset(){ stopCamera(); setRecording(false); setRecError(""); if(videoUrl)URL.revokeObjectURL(videoUrl); setVideoUrl(null); setFileName(""); clearRefFile(); setReport(null); setFrames([]); setError(""); setProgress(0); setStep("home"); }
 
   return (
     <div style={{background:C.ink,color:C.chalk,minHeight:"100vh",fontFamily:BODY}}>
@@ -1232,6 +1269,17 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                   <input type="password" value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder="Leave blank for the built-in coach — no key needed" style={inputStyle}/>
                   <div style={{color:C.muted,fontSize:11.5,marginTop:6,lineHeight:1.5}}>With a key, an AI rewrites the analysis &amp; plan from your measured numbers. Without one, you still get the full measured report. Key stays in this tab only.</div>
                 </Field>
+                <Field label="Reference clip (optional)">
+                  {!refVideoUrl ? (
+                    <label className="fr-btn" tabIndex={0} onKeyDown={e=>(e.key==="Enter"||e.key===" ")&&refFileRef.current?.click()} style={{...btnGhost,padding:"11px 18px",width:"100%",boxSizing:"border-box",justifyContent:"center"}}>Upload a reference clip<input ref={refFileRef} type="file" accept="video/*" onChange={onRefFile} style={{display:"none"}}/></label>
+                  ) : (
+                    <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                      <span style={{color:C.muted,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:220}}>{refFileName}</span>
+                      <button className="fr-btn" onClick={clearRefFile} style={{background:"transparent",color:C.you,border:`1px solid ${C.you}`,borderRadius:6,padding:"6px 12px",fontSize:12,cursor:"pointer"}}>Remove</button>
+                    </div>
+                  )}
+                  <div style={{color:C.muted,fontSize:11.5,marginTop:6,lineHeight:1.5}}>If a coach (or you) uploads a clip of correct form here, your session gets measured against it directly — a real, apples-to-apples comparison instead of the idealized legend benchmark. Skip this and you still get the full report as usual.</div>
+                </Field>
                 <button className="fr-btn" onClick={analyze} style={{...btnSolid,padding:"15px",border:"none"}}>Track &amp; grade my motion →</button>
                 <div style={{color:C.muted,fontSize:12,lineHeight:1.5}}>Tip: a side-on view where your whole body stays in frame gives the cleanest tracking.</div>
               </div>
@@ -1279,9 +1327,13 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
             {report.match && (
               <div style={{background:C.panel,border:`1px solid ${C.legend}`,borderRadius:14,padding:"20px 24px",marginBottom:28}}>
                 <h3 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:20,margin:"0 0 6px"}}>How your form compares</h3>
-                <p style={{margin:"0 0 14px",fontSize:16,lineHeight:1.5}}>Your {move.toLowerCase()} most resembles <span style={{color:C.legend,fontWeight:600}}>{report.match.legend}'s {report.match.form}</span>.{report.match.chosen && report.match.chosen!==report.match.legend ? ` (You picked ${report.match.chosen}, but by the measurements your motion lines up closest with ${report.match.legend}.)` : ""}</p>
+                {report.match.real ? (
+                  <p style={{margin:"0 0 14px",fontSize:16,lineHeight:1.5}}>Measured directly against <span style={{color:C.legend,fontWeight:600}}>the reference clip</span> for this move.</p>
+                ) : (
+                  <p style={{margin:"0 0 14px",fontSize:16,lineHeight:1.5}}>Your {move.toLowerCase()} most resembles <span style={{color:C.legend,fontWeight:600}}>{report.match.legend}'s {report.match.form}</span>.{report.match.chosen && report.match.chosen!==report.match.legend ? ` (You picked ${report.match.chosen}, but by the measurements your motion lines up closest with ${report.match.legend}.)` : ""}</p>
+                )}
                 {report.match.lines.map((l,i)=>(<div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:9}}><span style={{color:C.you,fontWeight:700}}>›</span><span style={{fontSize:14.5,lineHeight:1.5}}>{l}</span></div>))}
-                <div style={{color:C.muted,fontSize:11.5,marginTop:12,lineHeight:1.5}}>Differences are measured from your tracked joints against an idealized model of each legend's form — a representative template, not motion-capture of the real player.</div>
+                <div style={{color:C.muted,fontSize:11.5,marginTop:12,lineHeight:1.5}}>{report.match.real ? "These differences are measured directly from both tracked clips — real numbers, no idealized model." : "Differences are measured from your tracked joints against an idealized model of each legend's form — a representative template, not motion-capture of the real player."}</div>
               </div>
             )}
 
