@@ -145,6 +145,10 @@ create policy "Users can insert own feedback" on public.feedback for insert with
 create policy "Users can view own feedback" on public.feedback for select using (auth.uid() = user_id);
 
 -- teams + realtime chat (only visible to teammates, never public)
+drop table if exists public.team_messages cascade;
+drop table if exists public.team_members cascade;
+drop table if exists public.teams cascade;
+
 create table public.teams (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -153,10 +157,6 @@ create table public.teams (
   owner uuid references public.profiles(id) on delete cascade not null,
   created_at timestamptz default now()
 );
-alter table public.teams enable row level security;
-create policy "Members can view their teams" on public.teams for select using (
-  exists (select 1 from public.team_members tm where tm.team_id = teams.id and tm.user_id = auth.uid())
-);
 
 create table public.team_members (
   team_id uuid references public.teams(id) on delete cascade not null,
@@ -164,11 +164,6 @@ create table public.team_members (
   joined_at timestamptz default now(),
   primary key (team_id, user_id)
 );
-alter table public.team_members enable row level security;
-create policy "Members can view their team roster" on public.team_members for select using (
-  exists (select 1 from public.team_members me where me.team_id = team_members.team_id and me.user_id = auth.uid())
-);
-create policy "Users can leave a team" on public.team_members for delete using (user_id = auth.uid());
 
 create table public.team_messages (
   id uuid primary key default gen_random_uuid(),
@@ -177,7 +172,20 @@ create table public.team_messages (
   text text not null,
   created_at timestamptz default now()
 );
+
+alter table public.teams enable row level security;
+alter table public.team_members enable row level security;
 alter table public.team_messages enable row level security;
+
+create policy "Members can view their teams" on public.teams for select using (
+  exists (select 1 from public.team_members tm where tm.team_id = teams.id and tm.user_id = auth.uid())
+);
+
+create policy "Members can view their team roster" on public.team_members for select using (
+  exists (select 1 from public.team_members me where me.team_id = team_members.team_id and me.user_id = auth.uid())
+);
+create policy "Users can leave a team" on public.team_members for delete using (user_id = auth.uid());
+
 create policy "Members can view their team messages" on public.team_messages for select using (
   exists (select 1 from public.team_members tm where tm.team_id = team_messages.team_id and tm.user_id = auth.uid())
 );
