@@ -458,7 +458,7 @@ function App(){
   const [feedRecording,setFeedRecording]=useState(false); const [feedRecErr,setFeedRecErr]=useState(""); const [feedRecSecs,setFeedRecSecs]=useState(0); const [recordedUrl,setRecordedUrl]=useState("");
   const feedStreamRef=useRef(null),feedRecRef=useRef(null),feedChunksRef=useRef([]),feedLiveRef=useRef(null);
   const [mirror,setMirror]=useState(true);
-  const [teams,setTeams]=useState([]); const [teamName,setTeamName]=useState(""); const [teamSport,setTeamSport]=useState("Basketball"); const [joinCode,setJoinCode]=useState(""); const [teamErr,setTeamErr]=useState(""); const [openTeam,setOpenTeam]=useState(null); const [teamMsg,setTeamMsg]=useState("");
+  const [teams,setTeams]=useState([]); const [teamName,setTeamName]=useState(""); const [teamSport,setTeamSport]=useState("Basketball"); const [teamSportOther,setTeamSportOther]=useState(""); const [joinCode,setJoinCode]=useState(""); const [teamErr,setTeamErr]=useState(""); const [openTeam,setOpenTeam]=useState(null); const [teamMsg,setTeamMsg]=useState("");
   const [rankings,setRankings]=useState([]); const [rankingsErr,setRankingsErr]=useState(""); const [rankingsLoading,setRankingsLoading]=useState(false);
   async function loadRankings(){
     setRankingsLoading(true); setRankingsErr("");
@@ -498,7 +498,9 @@ function App(){
 
   async function createTeam(){
     const n=teamName.trim(); if(!n)return;
-    const {data,error}=await sb.rpc("create_team",{p_name:n,p_sport:teamSport});
+    const sportVal=teamSport==="Other"?teamSportOther.trim():teamSport;
+    if(!sportVal){ setTeamErr("Enter a sport name."); return; }
+    const {data,error}=await sb.rpc("create_team",{p_name:n,p_sport:sportVal});
     if(error){ setTeamErr(error.message); return; }
     setTeamName(""); setTeamErr(""); await refreshTeams(); setOpenTeam(data.id);
   }
@@ -649,6 +651,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
   }
 
   async function analyze(){
+    if(!sport.trim()||!move.trim()||!legend.trim()){ setError("Fill in sport, move, and who to compare to."); return; }
     setStep("analyzing"); setError(""); setFrames([]); setProgress(0); setPhase("Loading pose model (first run downloads it once)…");
     try{
       await getDetector();
@@ -1025,7 +1028,8 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                   <h3 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:17,margin:"0 0 12px"}}>Create a team</h3>
                   <div style={{display:"flex",flexDirection:"column",gap:10}}>
                     <input value={teamName} onChange={e=>setTeamName(e.target.value)} placeholder="Team name" style={inputStyle}/>
-                    <Select value={teamSport} onChange={setTeamSport} options={Object.keys(SPORTS)}/>
+                    <Select value={teamSport} onChange={setTeamSport} options={[...Object.keys(SPORTS),"Other"]}/>
+                    {teamSport==="Other" && (<input value={teamSportOther} onChange={e=>setTeamSportOther(e.target.value)} placeholder="Enter your sport" style={inputStyle}/>)}
                     <button className="fr-btn" onClick={createTeam} style={{...btnSolid,padding:"11px 18px"}}>Create</button>
                   </div>
                 </div>
@@ -1173,9 +1177,11 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                 <button className="fr-btn" onClick={()=>fileRef.current?.click()} style={{marginTop:8,background:"transparent",color:C.you,border:`1px solid ${C.you}`,borderRadius:6,padding:"8px 12px",fontSize:13,cursor:"pointer",width:"100%"}}>Replace clip<input ref={fileRef} type="file" accept="video/*" onChange={onFile} style={{display:"none"}}/></button>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:18}}>
-                <Field label="Sport"><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{Object.keys(SPORTS).map(s=>(<button key={s} className="fr-chip" onClick={()=>pickSport(s)} style={{background:sport===s?C.you:"transparent",color:sport===s?C.ink:C.chalk,border:`1px solid ${sport===s?C.you:C.line}`,borderRadius:20,padding:"7px 14px",fontSize:13,cursor:"pointer",fontWeight:500}}>{s}</button>))}</div></Field>
-                <Field label="Move / technique"><Select value={move} onChange={setMove} options={SPORTS[sport].moves}/></Field>
-                <Field label="Compare me to"><Select value={legend} onChange={setLegend} options={SPORTS[sport].legends} accent={C.legend}/></Field>
+                <Field label="Sport"><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{Object.keys(SPORTS).map(s=>(<button key={s} className="fr-chip" onClick={()=>pickSport(s)} style={{background:sport===s?C.you:"transparent",color:sport===s?C.ink:C.chalk,border:`1px solid ${sport===s?C.you:C.line}`,borderRadius:20,padding:"7px 14px",fontSize:13,cursor:"pointer",fontWeight:500}}>{s}</button>))}<button className="fr-chip" onClick={()=>{ if(SPORTS[sport]){ setSport(""); setMove(""); setLegend(""); } }} style={{background:!SPORTS[sport]?C.you:"transparent",color:!SPORTS[sport]?C.ink:C.chalk,border:`1px solid ${!SPORTS[sport]?C.you:C.line}`,borderRadius:20,padding:"7px 14px",fontSize:13,cursor:"pointer",fontWeight:500}}>Other</button></div>
+                  {!SPORTS[sport] && (<input value={sport} onChange={e=>setSport(e.target.value)} placeholder="Enter your sport" style={{...inputStyle,marginTop:8}}/>)}
+                </Field>
+                <Field label="Move / technique">{SPORTS[sport]?(<Select value={move} onChange={setMove} options={SPORTS[sport].moves}/>):(<input value={move} onChange={e=>setMove(e.target.value)} placeholder="Enter the move or technique" style={inputStyle}/>)}</Field>
+                <Field label="Compare me to">{SPORTS[sport]?(<Select value={legend} onChange={setLegend} options={SPORTS[sport].legends} accent={C.legend}/>):(<input value={legend} onChange={e=>setLegend(e.target.value)} placeholder="Enter a legend's name" style={{...inputStyle,color:C.legend}}/>)}</Field>
                 <Field label="Your level"><Select value={level} onChange={setLevel} options={LEVELS}/></Field>
                 <Field label="AI coach (optional — free Google AI Studio key)">
                   <input type="password" value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder="Leave blank for the built-in coach — no key needed" style={inputStyle}/>
