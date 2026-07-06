@@ -225,3 +225,31 @@ begin
 end; $$;
 
 alter publication supabase_realtime add table public.team_messages;
+
+-- global rankings leaderboard: exposes team name/sport/score across every
+-- team (not just the caller's), so it runs security definer to read past
+-- teams/team_members RLS, but returns nothing sensitive (no code, no owner,
+-- no member list) that would let a stranger join or identify a team's roster.
+create or replace function public.team_rankings() returns table(
+  team_id uuid, name text, sport text, member_count bigint, session_count bigint, avg_score numeric
+) language sql security definer set search_path = public stable as $$
+  select
+    t.id as team_id,
+    t.name,
+    t.sport,
+    count(distinct tm.user_id) as member_count,
+    count(ss.id) as session_count,
+    round(avg(
+      case ss.grade
+        when 'A' then 12 when 'A-' then 11 when 'B+' then 10 when 'B' then 9
+        when 'B-' then 8 when 'C+' then 7 when 'C' then 6 when 'C-' then 5
+        when 'D+' then 4 when 'D' then 3 else null
+      end
+    ),2) as avg_score
+  from public.teams t
+  join public.team_members tm on tm.team_id = t.id
+  left join public.session_summaries ss on ss.user_id = tm.user_id and ss.grade is not null and ss.grade <> '—'
+  group by t.id, t.name, t.sport
+  order by avg_score desc nulls last, session_count desc;
+$$;
+grant execute on function public.team_rankings() to anon, authenticated;

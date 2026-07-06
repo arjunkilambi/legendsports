@@ -84,6 +84,12 @@ function saveStore(s){ try{ localStorage.setItem(STORE_KEY,JSON.stringify(s)); r
 function fmtDate(iso){ try{ return new Date(iso).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})+" · "+new Date(iso).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}); }catch(e){ return iso; } }
 const GRADE_RANK={A:12,"A-":11,"B+":10,B:9,"B-":8,"C+":7,C:6,"C-":5,"D+":4,D:3,"—":0};
 function rankGrade(g){ return GRADE_RANK[g]||0; }
+function scoreToGrade(score){
+  if(score==null) return "—";
+  let best="—",bestDiff=Infinity;
+  Object.entries(GRADE_RANK).forEach(([g,r])=>{ if(g==="—")return; const d=Math.abs(r-score); if(d<bestDiff){bestDiff=d;best=g;} });
+  return best;
+}
 function recruitStats(sessions){
   const real=(sessions||[]).filter(s=>s.grade&&s.grade!=="—");
   if(!real.length) return { count:0, best:null, sports:[], moves:0, recent:[] };
@@ -453,6 +459,14 @@ function App(){
   const feedStreamRef=useRef(null),feedRecRef=useRef(null),feedChunksRef=useRef([]),feedLiveRef=useRef(null);
   const [mirror,setMirror]=useState(true);
   const [teams,setTeams]=useState([]); const [teamName,setTeamName]=useState(""); const [teamSport,setTeamSport]=useState("Basketball"); const [joinCode,setJoinCode]=useState(""); const [teamErr,setTeamErr]=useState(""); const [openTeam,setOpenTeam]=useState(null); const [teamMsg,setTeamMsg]=useState("");
+  const [rankings,setRankings]=useState([]); const [rankingsErr,setRankingsErr]=useState(""); const [rankingsLoading,setRankingsLoading]=useState(false);
+  async function loadRankings(){
+    setRankingsLoading(true); setRankingsErr("");
+    const {data,error}=await sb.rpc("team_rankings");
+    if(error){ setRankingsErr(error.message); setRankingsLoading(false); return; }
+    setRankings(data||[]); setRankingsLoading(false);
+  }
+  useEffect(()=>{ if(step==="rankings") loadRankings(); },[step]);
 
   async function refreshTeams(){
     const {data:{user}}=await sb.auth.getUser(); if(!user){ setTeams([]); return; }
@@ -670,6 +684,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
               <button className="fr-btn" onClick={()=>setStep("feed")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Feed</button>
               <button className="fr-btn" onClick={()=>setStep("feedback")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Feedback</button>
               <button className="fr-btn" onClick={()=>{setOpenTeam(null);setStep("teams");}} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Teams</button>
+              <button className="fr-btn" onClick={()=>setStep("rankings")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Rankings</button>
               <span style={{color:C.muted}}>{profile}</span>
               <button className="fr-btn" onClick={signOut} style={{background:"transparent",color:C.you,border:"none",cursor:"pointer",fontSize:13}}>Switch</button>
             </div>
@@ -1068,6 +1083,35 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                 </div>
               </div>
             ); })()}
+          </section>
+        )}
+
+        {step==="rankings" && (
+          <section className="fr-fade" style={{padding:"36px 0 80px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",flexWrap:"wrap",gap:10,marginBottom:8}}>
+              <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:0}}>Team rankings</h2>
+              <button className="fr-btn" onClick={()=>setStep("home")} style={{...btnSolid,padding:"10px 18px"}}>← Back</button>
+            </div>
+            <p style={{color:C.muted,margin:"0 0 22px",fontSize:14,lineHeight:1.5}}>Every team, ranked by average graded session across its members. Updates as teammates log new sessions.</p>
+            {rankingsErr && <div style={{color:C.you,fontSize:13,marginBottom:14}}>{rankingsErr}</div>}
+            {rankingsLoading ? (
+              <div style={{color:C.muted,textAlign:"center",padding:30}}>Loading rankings…</div>
+            ) : rankings.length===0 ? (
+              <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:30,textAlign:"center",color:C.muted}}>No teams have graded sessions yet.</div>
+            ) : (
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {rankings.map((r,i)=>(
+                  <div key={r.team_id} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:"14px 18px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+                    <div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:20,color:i===0?C.legend:C.muted,minWidth:28,textAlign:"center"}}>#{i+1}</div>
+                    <div style={{flex:1,minWidth:160}}>
+                      <div style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:16}}>{r.name}</div>
+                      <div style={{color:C.muted,fontSize:12.5,marginTop:2}}><span style={{color:C.legend}}>{r.sport}</span> · {r.member_count} {r.member_count===1?"member":"members"} · {r.session_count} graded {r.session_count===1?"session":"sessions"}</div>
+                    </div>
+                    <div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:28,color:gradeColor(scoreToGrade(r.avg_score)),minWidth:50,textAlign:"center"}}>{scoreToGrade(r.avg_score)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
