@@ -145,6 +145,9 @@ function clean(arr){ return arr.filter(v=>v!=null && !isNaN(v)); }
 function mean(arr){ const a=clean(arr); return a.length?a.reduce((s,v)=>s+v,0)/a.length:null; }
 function median(arr){ const a=clean(arr).sort((x,y)=>x-y); if(!a.length)return null; const m=Math.floor(a.length/2); return a.length%2?a[m]:(a[m-1]+a[m])/2; }
 function stdev(arr){ const a=clean(arr); if(a.length<2)return null; const mu=mean(a); return Math.sqrt(a.reduce((s,v)=>s+(v-mu)*(v-mu),0)/a.length); }
+// robust "near-extreme" stat: a percentile instead of raw min/max, so one noisy
+// pose-estimation frame can't single-handedly swing the measured angle/grade.
+function percentile(arr,p){ const a=clean(arr).slice().sort((x,y)=>x-y); if(!a.length)return null; const idx=(a.length-1)*p; const lo=Math.floor(idx),hi=Math.ceil(idx); if(lo===hi)return a[lo]; return a[lo]+(a[hi]-a[lo])*(idx-lo); }
 function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
 // scoring helpers (return 0..100)
 function scoreHigher(v,zero,full){ if(v==null)return null; return clamp(((v-zero)/(full-zero))*100,0,100); }
@@ -173,7 +176,7 @@ async function runPose(url,onProgress){
   if(!isFinite(dur)||dur===0){ await new Promise(res=>{ const f=()=>{ if(isFinite(v.duration)&&v.duration>0){v.removeEventListener("durationchange",f);res();} }; v.addEventListener("durationchange",f); v.currentTime=1e6; setTimeout(res,1500); }); dur=isFinite(v.duration)&&v.duration>0?v.duration:0; }
   const W=Math.min(480,v.videoWidth||480), scale=W/(v.videoWidth||W), H=Math.round((v.videoHeight||360)*scale);
   const canvas=document.createElement("canvas"); canvas.width=W; canvas.height=H; const ctx=canvas.getContext("2d");
-  const N=24, poses=[], shots=[], shotEvery=Math.max(1,Math.round(N/6));
+  const N=36, poses=[], shots=[], shotEvery=Math.max(1,Math.round(N/6));
   let blankCount=0;
   for(let i=0;i<N;i++){
     const t=dur?(dur*(i+0.5))/N:0;
@@ -280,6 +283,14 @@ function analyzeMotion(data, sport, move, legend, level){
   const scales=poses.map(p=>{ const sm=mid(pick(p.kp,"left_shoulder"),pick(p.kp,"right_shoulder")); const am=mid(pick(p.kp,"left_ankle"),pick(p.kp,"right_ankle")); return dist(sm,am); });
   const personScale=median(scales)|| (data.H*0.5);
 
+  // camera framing check: a true side-on view foreshortens shoulder width toward
+  // near-zero (you're looking at the body edge-on), while a front/three-quarter
+  // view shows close to full shoulder width. High ratio => probably not side-on,
+  // which the knee/elbow angle math assumes — flag it instead of silently grading.
+  const shoulderW=median(poses.map(p=>dist(pick(p.kp,"left_shoulder"),pick(p.kp,"right_shoulder"))));
+  const facingRatio=(shoulderW!=null&&personScale)?shoulderW/personScale:null;
+  const notSideOn=facingRatio!=null&&facingRatio>0.22;
+
   // series
   const kneeSeries=poses.map(p=>bestSideKnee(p.kp));
   const elbowSeries=poses.map(p=>bestSideElbow(p.kp).mean);
@@ -287,16 +298,17 @@ function analyzeMotion(data, sport, move, legend, level){
   const comX=poses.map(p=>{ const hm=mid(pick(p.kp,"left_hip"),pick(p.kp,"right_hip")); return hm?hm.x/personScale:null; });
   const baseW=poses.map(p=>{ const a=dist(pick(p.kp,"left_ankle"),pick(p.kp,"right_ankle")); const s=dist(pick(p.kp,"left_shoulder"),pick(p.kp,"right_shoulder")); return (a!=null&&s)?a/s:null; });
 
-  // raw measures
-  const minKnee=Math.min.apply(null,clean(kneeSeries).concat([999])); const hasKnee=clean(kneeSeries).length>0;
-  const kneeROM=(()=>{ const a=clean(kneeSeries); return a.length?Math.max.apply(null,a)-Math.min.apply(null,a):null; })();
-  const elbowROM=(()=>{ const a=clean(elbowSeries); return a.length?Math.max.apply(null,a)-Math.min.apply(null,a):null; })();
-  const rise=(()=>{ const a=clean(hipHeight); return a.length?Math.max.apply(null,a)-Math.min.apply(null,a):null; })();
+  // robust measures: 10th/90th percentile instead of raw min/max, so a single
+  // noisy tracked frame can't dominate the deepest-bend / peak-extension reading.
+  const minKnee=(()=>{ const v=percentile(kneeSeries,0.1); return v!=null?v:999; })(); const hasKnee=clean(kneeSeries).length>0;
+  const kneeROM=(()=>{ const hi=percentile(kneeSeries,0.9),lo=percentile(kneeSeries,0.1); return (hi!=null&&lo!=null)?hi-lo:null; })();
+  const elbowROM=(()=>{ const hi=percentile(elbowSeries,0.9),lo=percentile(elbowSeries,0.1); return (hi!=null&&lo!=null)?hi-lo:null; })();
+  const rise=(()=>{ const hi=percentile(hipHeight,0.9),lo=percentile(hipHeight,0.1); return (hi!=null&&lo!=null)?hi-lo:null; })();
   const drift=stdev(comX);
   const baseWidth=median(baseW);
   // finish: last third of clip
   const tail=poses.slice(Math.floor(poses.length*0.66));
-  const finishElbow=(()=>{ const a=clean(tail.map(p=>bestSideElbow(p.kp).max)); return a.length?Math.max.apply(null,a):null; })();
+  const finishElbow=percentile(tail.map(p=>bestSideElbow(p.kp).max),0.9);
   // symmetry: mean |L-R| knee across clip, normalized
   const sym=mean(poses.map(p=>{ const l=angleDeg(pick(p.kp,"left_hip"),pick(p.kp,"left_knee"),pick(p.kp,"left_ankle")); const r=angleDeg(pick(p.kp,"right_hip"),pick(p.kp,"right_knee"),pick(p.kp,"right_ankle")); return (l!=null&&r!=null)?Math.abs(l-r):null; }));
 
@@ -380,7 +392,7 @@ function analyzeMotion(data, sport, move, legend, level){
         `Strongest: ${catLabel[bestCat]} at ${cats[bestCat]}/100. ${noteFor[bestCat]}`,
         `Focus here first: ${catLabel[weak]} at ${cats[weak]}/100. ${noteFor[weak]}`,
         `Measured from your motion: deepest knee bend ~${r(minKnee)}°, arm range of motion ~${r(elbowROM)}°, follow-through extension ~${r(finishElbow)}°, vertical rise ~${rise!=null?(rise*100).toFixed(0):"—"}% of body height.`,
-      ];
+      ].concat(notSideOn?["⚠ This clip looks more front-on than side-on — knee bend and arm-extension angles read less accurately from this camera angle. Re-film from directly the side (perpendicular to your motion) for a sharper score."]:[]);
 
   const observed = lowTrack
     ? `⚠ Tracked ${tracked} frames but average joint confidence was only ${confPct}% — try a closer, full-body, side-on clip in good light for a cleaner read.`
