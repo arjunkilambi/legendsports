@@ -33,22 +33,15 @@
 <script src="https://unpkg.com/@babel/standalone@7/babel.min.js" crossorigin></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js" crossorigin></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js" crossorigin></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" crossorigin></script>
 
 <script>
   if(!window.React||!window.ReactDOM)frShowErr('React did not load — connect to the internet and reload.');
   if(!window.Babel)frShowErr('Babel did not load — connect to the internet and reload, or use Chrome.');
   if(!window.tf||!window.poseDetection)frShowErr('The pose-detection library did not load — connect to the internet and reload.');
-  if(!window.supabase)frShowErr('The Supabase library did not load — connect to the internet and reload.');
 </script>
 
 <script type="text/babel" data-presets="react">
 const { useState, useRef, useEffect } = React;
-
-const sb = window.supabase.createClient(
-  "https://oxaiyiijfblgittjimyr.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94YWl5aWlqZmJsZ2l0dGppbXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMjEyNTEsImV4cCI6MjA5ODU5NzI1MX0.zsX3K02zMPzxYvmwTiixGDzx4nGDuuw6hpmsK8-exQ0"
-);
 
 const C = { ink:"#10130F", panel:"#191E18", panel2:"#212821", chalk:"#F3F0E4", muted:"#9AA39A", line:"rgba(243,240,228,0.12)", you:"#FF6A3D", legend:"#F2C14E", good:"#7BC47F" };
 const DISPLAY="'Oswald','Arial Narrow','Helvetica Neue',sans-serif";
@@ -433,11 +426,8 @@ function App(){
 
   const [profile,setProfile]=useState(null);
   const [sessions,setSessions]=useState([]);
-  const [authEmail,setAuthEmail]=useState("");
+  const [authName,setAuthName]=useState("");
   const [authPass,setAuthPass]=useState("");
-  const [authUsername,setAuthUsername]=useState("");
-  const [authMode,setAuthMode]=useState("signup");
-  const [authBusy,setAuthBusy]=useState(false);
   const [authErr,setAuthErr]=useState("");
   const [recruit,setRecruit]=useState({});
   const [coachEmail,setCoachEmail]=useState("");
@@ -453,60 +443,11 @@ function App(){
   const feedStreamRef=useRef(null),feedRecRef=useRef(null),feedChunksRef=useRef([]),feedLiveRef=useRef(null);
   const [mirror,setMirror]=useState(true);
   const [teams,setTeams]=useState([]); const [teamName,setTeamName]=useState(""); const [teamSport,setTeamSport]=useState("Basketball"); const [joinCode,setJoinCode]=useState(""); const [teamErr,setTeamErr]=useState(""); const [openTeam,setOpenTeam]=useState(null); const [teamMsg,setTeamMsg]=useState("");
-
-  async function refreshTeams(){
-    const {data:{user}}=await sb.auth.getUser(); if(!user){ setTeams([]); return; }
-    const {data:myTeams,error}=await sb.from("teams").select("id,name,sport,code").order("created_at",{ascending:true});
-    if(error){ setTeamErr(error.message); return; }
-    const ids=(myTeams||[]).map(t=>t.id);
-    let membersByTeam={}, messagesByTeam={};
-    if(ids.length){
-      const {data:members}=await sb.from("team_members").select("team_id,profiles(username)").in("team_id",ids);
-      (members||[]).forEach(m=>{ (membersByTeam[m.team_id]=membersByTeam[m.team_id]||[]).push(m.profiles?.username||"?"); });
-      const {data:msgs}=await sb.from("team_messages").select("id,team_id,text,created_at,profiles(username)").in("team_id",ids).order("created_at",{ascending:true});
-      (msgs||[]).forEach(m=>{ (messagesByTeam[m.team_id]=messagesByTeam[m.team_id]||[]).push({id:m.id,author:m.profiles?.username||"?",text:m.text,date:m.created_at}); });
-    }
-    setTeams((myTeams||[]).map(t=>({...t,members:membersByTeam[t.id]||[],messages:messagesByTeam[t.id]||[]})));
-  }
-  useEffect(()=>{ if(profile) refreshTeams(); else setTeams([]); },[profile]);
-
-  useEffect(()=>{
-    if(!openTeam) return;
-    const channel=sb.channel(`team_messages_${openTeam}`)
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:"team_messages",filter:`team_id=eq.${openTeam}`}, async (payload)=>{
-        const row=payload.new;
-        const {data:p}=await sb.from("profiles").select("username").eq("id",row.user_id).single();
-        setTeams(prev=>prev.map(t=>t.id===openTeam?{...t,messages:[...(t.messages||[]),{id:row.id,author:p?.username||"?",text:row.text,date:row.created_at}]}:t));
-      })
-      .subscribe();
-    return ()=>{ sb.removeChannel(channel); };
-  },[openTeam]);
-
-  async function createTeam(){
-    const n=teamName.trim(); if(!n)return;
-    const {data,error}=await sb.rpc("create_team",{p_name:n,p_sport:teamSport});
-    if(error){ setTeamErr(error.message); return; }
-    setTeamName(""); setTeamErr(""); await refreshTeams(); setOpenTeam(data.id);
-  }
-  async function joinTeam(){
-    const c=joinCode.trim(); if(!c)return;
-    const {data,error}=await sb.rpc("join_team",{p_code:c});
-    if(error){ setTeamErr(error.message); return; }
-    setJoinCode(""); setTeamErr(""); await refreshTeams(); setOpenTeam(data.id);
-  }
-  async function postTeamMsg(){
-    if(!openTeam)return; const txt=teamMsg.trim(); if(!txt)return;
-    const {data:{user}}=await sb.auth.getUser(); if(!user)return;
-    const {error}=await sb.from("team_messages").insert({team_id:openTeam,user_id:user.id,text:txt});
-    if(error){ setTeamErr(error.message); return; }
-    setTeamMsg("");
-  }
-  async function leaveTeam(id){
-    const {data:{user}}=await sb.auth.getUser(); if(!user)return;
-    const {error}=await sb.from("team_members").delete().eq("team_id",id).eq("user_id",user.id);
-    if(error){ setTeamErr(error.message); return; }
-    setOpenTeam(null); await refreshTeams();
-  }
+  useEffect(()=>{ setTeams(loadTeams()); },[]);
+  function createTeam(){ const n=teamName.trim(); if(!n)return; const code=Math.random().toString(36).slice(2,7).toUpperCase(); const t={id:Date.now(),name:n,sport:teamSport,code,owner:profile,members:[profile],messages:[]}; const next=[t,...loadTeams()]; saveTeams(next); setTeams(next); setTeamName(""); setTeamErr(""); setOpenTeam(t.id); }
+  function joinTeam(){ const c=joinCode.trim().toUpperCase(); if(!c)return; const all=loadTeams(); const i=all.findIndex(x=>x.code===c); if(i<0){ setTeamErr("No team found with that code."); return; } if(!all[i].members.includes(profile)) all[i].members.push(profile); saveTeams(all); setTeams(all); setJoinCode(""); setTeamErr(""); setOpenTeam(all[i].id); }
+  function postTeamMsg(){ if(!openTeam)return; const txt=teamMsg.trim(); if(!txt)return; const all=loadTeams(); const i=all.findIndex(x=>x.id===openTeam); if(i<0)return; all[i].messages=[...(all[i].messages||[]),{id:Date.now(),author:profile,text:txt,date:new Date().toISOString()}]; saveTeams(all); setTeams(all); setTeamMsg(""); }
+  function leaveTeam(id){ const all=loadTeams(); const i=all.findIndex(x=>x.id===id); if(i<0)return; all[i].members=(all[i].members||[]).filter(m=>m!==profile); saveTeams(all); setTeams(all); setOpenTeam(null); }
 
   useEffect(()=>{ if(step==="feed"&&feedMode==="record") startFeedCam(); else stopFeedCam(); return ()=>stopFeedCam(); },[step,feedMode]);
   useEffect(()=>{ if(!feedRecording)return; const id=setInterval(()=>setFeedRecSecs(s=>s+1),1000); return ()=>clearInterval(id); },[feedRecording]);
@@ -544,40 +485,20 @@ function App(){
     return <a href={link} target="_blank" rel="noopener noreferrer" style={{color:C.you,fontSize:14}}>Watch ↗ {link}</a>;
   }
 
-  async function loadProfileFromSession(){
-    const {data:{user}}=await sb.auth.getUser();
-    if(!user){ setStep("auth"); return; }
-    const {data:prof}=await sb.from("profiles").select("username").eq("id",user.id).single();
-    const uname=prof?.username||(user.email||"").split("@")[0];
-    const s=loadStore(); if(!s.profiles[uname]) s.profiles[uname]={passcode:"",sessions:[]}; s.current=uname; saveStore(s);
-    setProfile(uname); setSessions(s.profiles[uname].sessions||[]); setRecruit(s.profiles[uname].recruit||{});
-    setAuthEmail(""); setAuthPass(""); setAuthUsername(""); setAuthErr(""); setStep("home");
-  }
-  useEffect(()=>{ sb.auth.getSession().then(({data:{session}})=>{ if(session) loadProfileFromSession(); else setStep("auth"); }); },[]);
+  useEffect(()=>{ const s=loadStore(); if(s.current && s.profiles[s.current]){ setProfile(s.current); setSessions(s.profiles[s.current].sessions||[]); setRecruit(s.profiles[s.current].recruit||{}); } else { setStep("auth"); } },[]);
 
   function saveRecruit(next){ const r=next||recruit; setRecruit(r); const s=loadStore(); if(s.profiles[profile]){ s.profiles[profile].recruit=r; saveStore(s); } }
   function setRecruitField(k,v){ const r={...recruit,[k]:v}; setRecruit(r); const s=loadStore(); if(s.profiles[profile]){ s.profiles[profile].recruit=r; saveStore(s); } }
 
-  async function doAuth(){
-    const email=authEmail.trim(); const pass=authPass;
-    if(!email||!pass){ setAuthErr("Enter an email and password."); return; }
-    setAuthErr(""); setAuthBusy(true);
-    try{
-      if(authMode==="signup"){
-        const uname=authUsername.trim();
-        if(!uname){ setAuthErr("Choose a username."); setAuthBusy(false); return; }
-        const {data,error}=await sb.auth.signUp({email,password:pass,options:{data:{username:uname}}});
-        if(error) throw error;
-        if(!data.session){ setAuthErr("Check your email to confirm your account, then log in below."); setAuthMode("login"); setAuthBusy(false); return; }
-      } else {
-        const {error}=await sb.auth.signInWithPassword({email,password:pass});
-        if(error) throw error;
-      }
-      await loadProfileFromSession();
-    } catch(e){ setAuthErr(e.message||"Something went wrong."); }
-    setAuthBusy(false);
+  function doAuth(){
+    const name=authName.trim(); if(!name){ setAuthErr("Enter a name to continue."); return; }
+    const s=loadStore();
+    if(s.profiles[name]){ if(s.profiles[name].passcode && s.profiles[name].passcode!==authPass.trim()){ setAuthErr("That name has a passcode and it didn't match."); return; } }
+    else { s.profiles[name]={ passcode:authPass.trim()||"", sessions:[] }; }
+    s.current=name; saveStore(s);
+    setProfile(name); setSessions(s.profiles[name].sessions||[]); setRecruit(s.profiles[name].recruit||{}); setAuthName(""); setAuthPass(""); setAuthErr(""); setStep("home");
   }
-  function signOut(){ sb.auth.signOut(); const s=loadStore(); s.current=null; saveStore(s); setProfile(null); setSessions([]); setStep("auth"); }
+  function signOut(){ const s=loadStore(); s.current=null; saveStore(s); setProfile(null); setSessions([]); setStep("auth"); }
   function saveSession(rep,framesArr){
     if(!profile) return;
     const s=loadStore(); if(!s.profiles[profile]) s.profiles[profile]={passcode:"",sessions:[]};
@@ -680,24 +601,25 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
 
         {error && step!=="analyzing" && (<div style={{background:"rgba(255,106,61,0.12)",border:`1px solid ${C.you}`,color:C.you,padding:12,borderRadius:8,marginTop:18,fontSize:14}}>{error}</div>)}
 
-        {step==="auth" && (
+        {step==="auth" && (()=>{ const existing=Object.keys(loadStore().profiles); return (
           <section className="fr-fade" style={{padding:"60px 0 80px",maxWidth:440,margin:"0 auto"}}>
             <h1 style={{fontFamily:DISPLAY,fontWeight:700,textTransform:"uppercase",fontSize:40,lineHeight:1,margin:"0 0 10px",textAlign:"center"}}>Welcome to <span style={{color:C.legend}}>LegendSports</span></h1>
-            <p style={{color:C.muted,textAlign:"center",margin:"0 0 28px",fontSize:15,lineHeight:1.5}}>{authMode==="signup"?"Create an account to save your sessions, join teams, and chat with teammates.":"Log in to your account."}</p>
-            <div style={{display:"flex",justifyContent:"center",gap:8,marginBottom:22}}>
-              <button className="fr-chip" onClick={()=>{setAuthMode("signup");setAuthErr("");}} style={{background:authMode==="signup"?C.you:"transparent",color:authMode==="signup"?C.ink:C.chalk,border:`1px solid ${authMode==="signup"?C.you:C.line}`,borderRadius:20,padding:"7px 16px",fontSize:13,cursor:"pointer"}}>Sign up</button>
-              <button className="fr-chip" onClick={()=>{setAuthMode("login");setAuthErr("");}} style={{background:authMode==="login"?C.you:"transparent",color:authMode==="login"?C.ink:C.chalk,border:`1px solid ${authMode==="login"?C.you:C.line}`,borderRadius:20,padding:"7px 16px",fontSize:13,cursor:"pointer"}}>Log in</button>
-            </div>
+            <p style={{color:C.muted,textAlign:"center",margin:"0 0 28px",fontSize:15,lineHeight:1.5}}>Create a profile to save your sessions and track progress over time.</p>
+            {existing.length>0 && (
+              <div style={{marginBottom:22}}>
+                <div style={{fontSize:12,letterSpacing:1,textTransform:"uppercase",color:C.muted,marginBottom:8,fontFamily:DISPLAY}}>Continue as</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:8}}>{existing.map(n=>(<button key={n} className="fr-chip" onClick={()=>setAuthName(n)} style={{background:authName===n?C.you:"transparent",color:authName===n?C.ink:C.chalk,border:`1px solid ${authName===n?C.you:C.line}`,borderRadius:20,padding:"7px 14px",fontSize:13,cursor:"pointer"}}>{n}</button>))}</div>
+              </div>
+            )}
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
-              {authMode==="signup" && (<Field label="Username"><input value={authUsername} onChange={e=>setAuthUsername(e.target.value)} placeholder="e.g. Sai" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&doAuth()}/></Field>)}
-              <Field label="Email"><input type="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&doAuth()}/></Field>
-              <Field label="Password"><input type="password" value={authPass} onChange={e=>setAuthPass(e.target.value)} placeholder={authMode==="signup"?"At least 6 characters":"Your password"} style={inputStyle} onKeyDown={e=>e.key==="Enter"&&doAuth()}/></Field>
+              <Field label="Name or username"><input value={authName} onChange={e=>setAuthName(e.target.value)} placeholder="e.g. Sai" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&doAuth()}/></Field>
+              <Field label="Passcode (optional)"><input type="password" value={authPass} onChange={e=>setAuthPass(e.target.value)} placeholder="Set one to keep your history private on this device" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&doAuth()}/></Field>
               {authErr && <div style={{color:C.you,fontSize:13}}>{authErr}</div>}
-              <button className="fr-btn" onClick={doAuth} disabled={authBusy} style={{...btnSolid,justifyContent:"center",opacity:authBusy?0.6:1}}>{authBusy?"Please wait…":(authMode==="signup"?"Create account →":"Log in →")}</button>
-              <div style={{color:C.muted,fontSize:11.5,lineHeight:1.5,textAlign:"center"}}>This is a real account (secured by Supabase) — that's what lets teammates on other devices see your team chat.</div>
+              <button className="fr-btn" onClick={doAuth} style={{...btnSolid,justifyContent:"center"}}>Continue →</button>
+              <div style={{color:C.muted,fontSize:11.5,lineHeight:1.5,textAlign:"center"}}>Profiles and history are saved only in this browser on this device — this isn't a secure cloud login, just a local profile.</div>
             </div>
           </section>
-        )}
+        ); })()}
 
         {step==="history" && (
           <section className="fr-fade" style={{padding:"36px 0 80px"}}>
@@ -1000,8 +922,8 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
               <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:0}}>Teams</h2>
               <button className="fr-btn" onClick={()=>setStep("home")} style={{...btnSolid,padding:"10px 18px"}}>← Back</button>
             </div>
-            <div style={{background:"rgba(123,196,127,0.1)",border:`1px solid ${C.good}`,color:C.good,padding:12,borderRadius:8,marginBottom:22,fontSize:13,lineHeight:1.5}}>
-              Live — teams and chat are stored in Supabase and sync instantly to teammates on any device.
+            <div style={{background:"rgba(242,193,78,0.1)",border:`1px solid ${C.legend}`,color:C.legend,padding:12,borderRadius:8,marginBottom:22,fontSize:13,lineHeight:1.5}}>
+              Local preview — teams and chat are saved on this device only, so teammates on other devices can't see them yet. Real team chat needs the backend (Supabase realtime).
             </div>
 
             {!openTeam ? (<>
@@ -1040,7 +962,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                   ))}
                 </div>
               )}
-            </>) : (()=>{ const t=teams.find(x=>x.id===openTeam); if(!t) return <div style={{color:C.muted}}>Team not found. <button onClick={()=>setOpenTeam(null)} style={{background:"none",border:"none",color:C.you,cursor:"pointer"}}>Back</button></div>;
+            </>) : (()=>{ const t=teams.find(x=>x.id===openTeam)||loadTeams().find(x=>x.id===openTeam); if(!t) return <div style={{color:C.muted}}>Team not found. <button onClick={()=>setOpenTeam(null)} style={{background:"none",border:"none",color:C.you,cursor:"pointer"}}>Back</button></div>;
               return (
               <div>
                 <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"16px 20px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
@@ -1061,7 +983,6 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                     </div>
                   ))}
                 </div>
-                {teamErr && <div style={{color:C.you,fontSize:13,marginBottom:8}}>{teamErr}</div>}
                 <div style={{display:"flex",gap:8}}>
                   <input value={teamMsg} onChange={e=>setTeamMsg(e.target.value)} onKeyDown={e=>e.key==="Enter"&&postTeamMsg()} placeholder="Message your team…" style={{...inputStyle,flex:1}}/>
                   <button className="fr-btn" onClick={postTeamMsg} style={{...btnSolid,padding:"11px 20px"}}>Send</button>
