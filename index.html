@@ -1098,20 +1098,31 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
               <div style={{color:C.muted,textAlign:"center",padding:30}}>Loading rankings…</div>
             ) : rankings.length===0 ? (
               <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:30,textAlign:"center",color:C.muted}}>No teams have graded sessions yet.</div>
-            ) : (
-              <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                {rankings.map((r,i)=>(
-                  <div key={r.team_id} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:"14px 18px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
-                    <div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:20,color:i===0?C.legend:C.muted,minWidth:28,textAlign:"center"}}>#{i+1}</div>
-                    <div style={{flex:1,minWidth:160}}>
-                      <div style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:16}}>{r.name}</div>
-                      <div style={{color:C.muted,fontSize:12.5,marginTop:2}}><span style={{color:C.legend}}>{r.sport}</span> · {r.member_count} {r.member_count===1?"member":"members"} · {r.session_count} graded {r.session_count===1?"session":"sessions"}</div>
+            ) : (()=>{
+              const bySport={};
+              rankings.forEach(r=>{ (bySport[r.sport||"Other"]=bySport[r.sport||"Other"]||[]).push(r); });
+              const sports=Object.keys(bySport).sort((a,b)=>a.localeCompare(b));
+              return (
+              <div style={{display:"flex",flexDirection:"column",gap:28}}>
+                {sports.map(sport=>(
+                  <div key={sport}>
+                    <div style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:15,color:C.legend,marginBottom:10}}>{sport}</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                      {bySport[sport].map((r,i)=>(
+                        <div key={r.team_id} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:"14px 18px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+                          <div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:20,color:i===0?C.legend:C.muted,minWidth:28,textAlign:"center"}}>#{i+1}</div>
+                          <div style={{flex:1,minWidth:160}}>
+                            <div style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:16}}>{r.name}</div>
+                            <div style={{color:C.muted,fontSize:12.5,marginTop:2}}>{r.member_count} {r.member_count===1?"member":"members"} · {r.session_count} graded {r.session_count===1?"session":"sessions"}</div>
+                          </div>
+                          <div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:28,color:gradeColor(scoreToGrade(r.avg_score)),minWidth:50,textAlign:"center"}}>{scoreToGrade(r.avg_score)}</div>
+                        </div>
+                      ))}
                     </div>
-                    <div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:28,color:gradeColor(scoreToGrade(r.avg_score)),minWidth:50,textAlign:"center"}}>{scoreToGrade(r.avg_score)}</div>
                   </div>
                 ))}
               </div>
-            )}
+              ); })()}
           </section>
         )}
 
