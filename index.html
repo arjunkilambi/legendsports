@@ -139,8 +139,12 @@ const EDGES = [["left_shoulder","right_shoulder"],["left_shoulder","left_elbow"]
 
 // ---------- geometry / stats ----------
 function angleDeg(a,b,c){ if(!a||!b||!c)return null; const ab={x:a.x-b.x,y:a.y-b.y},cb={x:c.x-b.x,y:c.y-b.y}; const d=ab.x*cb.x+ab.y*cb.y; const m=Math.hypot(ab.x,ab.y)*Math.hypot(cb.x,cb.y); if(!m)return null; let v=d/m; v=Math.max(-1,Math.min(1,v)); return Math.acos(v)*180/Math.PI; }
+// same joint-angle math in 3D (x,y,z meters) — unlike the 2D version, this is
+// viewpoint-invariant, so it isn't skewed by the camera not being exactly side-on.
+function angleDeg3D(a,b,c){ if(!a||!b||!c)return null; const ab={x:a.x-b.x,y:a.y-b.y,z:a.z-b.z},cb={x:c.x-b.x,y:c.y-b.y,z:c.z-b.z}; const d=ab.x*cb.x+ab.y*cb.y+ab.z*cb.z; const m=Math.hypot(ab.x,ab.y,ab.z)*Math.hypot(cb.x,cb.y,cb.z); if(!m)return null; let v=d/m; v=Math.max(-1,Math.min(1,v)); return Math.acos(v)*180/Math.PI; }
 function dist(a,b){ if(!a||!b)return null; return Math.hypot(a.x-b.x,a.y-b.y); }
 function mid(a,b){ if(!a||!b)return null; return {x:(a.x+b.x)/2,y:(a.y+b.y)/2}; }
+function mid3(a,b){ if(!a||!b)return null; return {x:(a.x+b.x)/2,y:(a.y+b.y)/2,z:(a.z+b.z)/2}; }
 function clean(arr){ return arr.filter(v=>v!=null && !isNaN(v)); }
 function mean(arr){ const a=clean(arr); return a.length?a.reduce((s,v)=>s+v,0)/a.length:null; }
 function median(arr){ const a=clean(arr).sort((x,y)=>x-y); if(!a.length)return null; const m=Math.floor(a.length/2); return a.length%2?a[m]:(a[m-1]+a[m])/2; }
@@ -156,9 +160,15 @@ function scoreRange(v,lo,hi,margin){ if(v==null)return null; if(v>=lo&&v<=hi)ret
 function avgScores(list){ const a=list.filter(v=>v!=null); return a.length?Math.round(a.reduce((s,v)=>s+v,0)/a.length):null; }
 
 // ---------- pose model ----------
+// BlazePose gives real x/y/z (keypoints3D) alongside the same 2D keypoints MoveNet
+// gives, using identical joint names (left_shoulder, right_knee, etc.) — so it's a
+// drop-in upgrade. If it fails to load for any reason, this falls all the way back
+// to the original 2D-only MoveNet path, so behavior never regresses.
 let _detector=null;
 async function getDetector(){
   if(_detector)return _detector;
+  try{ _detector=await poseDetection.createDetector(poseDetection.SupportedModels.BlazePose,{runtime:"tfjs",modelType:"full"}); return _detector; }catch(e){}
+  try{ _detector=await poseDetection.createDetector(poseDetection.SupportedModels.BlazePose,{runtime:"tfjs",modelType:"lite"}); return _detector; }catch(e){}
   const md=poseDetection.SupportedModels.MoveNet;
   try{ _detector=await poseDetection.createDetector(md,{modelType:poseDetection.movenet.modelType.SINGLEPOSE_THUNDER}); }
   catch(e){ _detector=await poseDetection.createDetector(md,{modelType:poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING}); }
@@ -167,6 +177,7 @@ async function getDetector(){
 function seekTo(v,t){ return new Promise(res=>{ const f=()=>{v.removeEventListener("seeked",f);res();}; v.addEventListener("seeked",f); v.currentTime=t; }); }
 function paintReady(v){ return new Promise(res=>{ let done=false; const fin=()=>{ if(!done){done=true;res();} }; if(v.requestVideoFrameCallback){ try{ v.requestVideoFrameCallback(()=>fin()); }catch(e){} } requestAnimationFrame(()=>requestAnimationFrame(fin)); setTimeout(fin,140); }); }
 function kpMap(keypoints,thr){ const m={}; keypoints.forEach(k=>{ if(k.score>=thr) m[k.name]={x:k.x,y:k.y,score:k.score}; }); return m; }
+function kpMap3D(keypoints,thr){ const m={}; (keypoints||[]).forEach(k=>{ if(k.score==null||k.score>=thr) m[k.name]={x:k.x,y:k.y,z:k.z}; }); return m; }
 
 async function runPose(url,onProgress){
   const det=await getDetector();
@@ -188,7 +199,8 @@ async function runPose(url,onProgress){
     let res=[]; try{ res=await det.estimatePoses(canvas,{maxPoses:1,flipHorizontal:false}); }catch(e){}
     if(res&&res[0]){
       const meanScore=mean(res[0].keypoints.map(k=>k.score));
-      poses.push({ t, kp:kpMap(res[0].keypoints,0.3), conf:meanScore });
+      const kp3D=(res[0].keypoints3D&&res[0].keypoints3D.length)?kpMap3D(res[0].keypoints3D,0.3):null;
+      poses.push({ t, kp:kpMap(res[0].keypoints,0.3), kp3D, conf:meanScore });
       if(i%shotEvery===0 && shots.length<6){
         drawSkeleton(ctx,res[0].keypoints,0.3);
         shots.push(canvas.toDataURL("image/jpeg",0.75).split(",")[1]);
@@ -209,8 +221,20 @@ function drawSkeleton(ctx,keypoints,thr){
 
 // ---------- hand-coded biomechanical analysis ----------
 function pick(kp,name){ return kp[name]||null; }
-function bestSideKnee(kp){ const l=angleDeg(pick(kp,"left_hip"),pick(kp,"left_knee"),pick(kp,"left_ankle")); const r=angleDeg(pick(kp,"right_hip"),pick(kp,"right_knee"),pick(kp,"right_ankle")); return mean([l,r]); }
-function bestSideElbow(kp){ const l=angleDeg(pick(kp,"left_shoulder"),pick(kp,"left_elbow"),pick(kp,"left_wrist")); const r=angleDeg(pick(kp,"right_shoulder"),pick(kp,"right_elbow"),pick(kp,"right_wrist")); return {l,r,mean:mean([l,r]),max:(l==null&&r==null)?null:Math.max(l||0,r||0)}; }
+// prefer the 3D joint angle (viewpoint-invariant) when BlazePose gave us real-world
+// x/y/z for all three points that frame; otherwise fall back to the 2D image-plane angle.
+function bestSideKnee(kp,kp3D){
+  const l3=kp3D?angleDeg3D(pick(kp3D,"left_hip"),pick(kp3D,"left_knee"),pick(kp3D,"left_ankle")):null;
+  const r3=kp3D?angleDeg3D(pick(kp3D,"right_hip"),pick(kp3D,"right_knee"),pick(kp3D,"right_ankle")):null;
+  if(l3!=null||r3!=null) return mean([l3,r3]);
+  const l=angleDeg(pick(kp,"left_hip"),pick(kp,"left_knee"),pick(kp,"left_ankle")); const r=angleDeg(pick(kp,"right_hip"),pick(kp,"right_knee"),pick(kp,"right_ankle")); return mean([l,r]);
+}
+function bestSideElbow(kp,kp3D){
+  const l3=kp3D?angleDeg3D(pick(kp3D,"left_shoulder"),pick(kp3D,"left_elbow"),pick(kp3D,"left_wrist")):null;
+  const r3=kp3D?angleDeg3D(pick(kp3D,"right_shoulder"),pick(kp3D,"right_elbow"),pick(kp3D,"right_wrist")):null;
+  if(l3!=null||r3!=null) return {l:l3,r:r3,mean:mean([l3,r3]),max:(l3==null&&r3==null)?null:Math.max(l3||0,r3||0)};
+  const l=angleDeg(pick(kp,"left_shoulder"),pick(kp,"left_elbow"),pick(kp,"left_wrist")); const r=angleDeg(pick(kp,"right_shoulder"),pick(kp,"right_elbow"),pick(kp,"right_wrist")); return {l,r,mean:mean([l,r]),max:(l==null&&r==null)?null:Math.max(l||0,r||0)};
+}
 
 const CATINFO={
   base:{label:"Balance & base", why:"A quiet, stable base is what every other part of the motion is built on."},
@@ -252,7 +276,13 @@ const LEGEND_PROFILES={
 };
 function legendProfile(name){ return LEGEND_PROFILES[name]||{form:"all-around form",minKnee:125,torsoLean:10,finishElbow:165,releaseFrac:0.5,baseWidth:1.4}; }
 function profDist(m,p){ let d=0,n=0; if(m.minKnee!=null){d+=Math.abs(m.minKnee-p.minKnee)/30;n++;} if(m.torso!=null){d+=Math.abs(m.torso-p.torsoLean)/20;n++;} if(m.finish!=null){d+=Math.abs(m.finish-p.finishElbow)/30;n++;} if(m.baseW!=null){d+=Math.abs(m.baseW-p.baseWidth)/0.6;n++;} return n?d/n:999; }
-function torsoLeanDeg(kp){ const sm=mid(pick(kp,"left_shoulder"),pick(kp,"right_shoulder")); const hm=mid(pick(kp,"left_hip"),pick(kp,"right_hip")); if(!sm||!hm)return null; const dx=hm.x-sm.x,dy=hm.y-sm.y; if(dy===0)return null; return Math.abs(Math.atan2(dx,dy))*180/Math.PI; }
+function torsoLeanDeg(kp,kp3D){
+  if(kp3D){
+    const sm3=mid3(pick(kp3D,"left_shoulder"),pick(kp3D,"right_shoulder")); const hm3=mid3(pick(kp3D,"left_hip"),pick(kp3D,"right_hip"));
+    if(sm3&&hm3){ const vx=sm3.x-hm3.x,vy=sm3.y-hm3.y,vz=sm3.z-hm3.z; const mag=Math.hypot(vx,vy,vz); if(mag){ let c=-vy/mag; c=Math.max(-1,Math.min(1,c)); return Math.acos(c)*180/Math.PI; } }
+  }
+  const sm=mid(pick(kp,"left_shoulder"),pick(kp,"right_shoulder")); const hm=mid(pick(kp,"left_hip"),pick(kp,"right_hip")); if(!sm||!hm)return null; const dx=hm.x-sm.x,dy=hm.y-sm.y; if(dy===0)return null; return Math.abs(Math.atan2(dx,dy))*180/Math.PI;
+}
 
 function analyzeMotion(data, sport, move, legend, level){
   const P=profileFor(move);
@@ -286,14 +316,17 @@ function analyzeMotion(data, sport, move, legend, level){
   // camera framing check: a true side-on view foreshortens shoulder width toward
   // near-zero (you're looking at the body edge-on), while a front/three-quarter
   // view shows close to full shoulder width. High ratio => probably not side-on,
-  // which the knee/elbow angle math assumes — flag it instead of silently grading.
+  // which the 2D knee/elbow angle math assumes. If BlazePose's 3D keypoints covered
+  // most of the clip, the angle math already routed around this (see bestSideKnee/
+  // bestSideElbow/torsoLeanDeg), so only warn when that safety net wasn't there.
   const shoulderW=median(poses.map(p=>dist(pick(p.kp,"left_shoulder"),pick(p.kp,"right_shoulder"))));
   const facingRatio=(shoulderW!=null&&personScale)?shoulderW/personScale:null;
-  const notSideOn=facingRatio!=null&&facingRatio>0.22;
+  const frac3D=poses.filter(p=>p.kp3D&&(pick(p.kp3D,"left_knee")||pick(p.kp3D,"right_knee"))).length/(poses.length||1);
+  const notSideOn=facingRatio!=null&&facingRatio>0.22&&frac3D<0.5;
 
   // series
-  const kneeSeries=poses.map(p=>bestSideKnee(p.kp));
-  const elbowSeries=poses.map(p=>bestSideElbow(p.kp).mean);
+  const kneeSeries=poses.map(p=>bestSideKnee(p.kp,p.kp3D));
+  const elbowSeries=poses.map(p=>bestSideElbow(p.kp,p.kp3D).mean);
   const hipHeight=poses.map(p=>{ const hm=mid(pick(p.kp,"left_hip"),pick(p.kp,"right_hip")); return hm?(data.H-hm.y)/personScale:null; });
   const comX=poses.map(p=>{ const hm=mid(pick(p.kp,"left_hip"),pick(p.kp,"right_hip")); return hm?hm.x/personScale:null; });
   const baseW=poses.map(p=>{ const a=dist(pick(p.kp,"left_ankle"),pick(p.kp,"right_ankle")); const s=dist(pick(p.kp,"left_shoulder"),pick(p.kp,"right_shoulder")); return (a!=null&&s)?a/s:null; });
@@ -308,14 +341,14 @@ function analyzeMotion(data, sport, move, legend, level){
   const baseWidth=median(baseW);
   // finish: last third of clip
   const tail=poses.slice(Math.floor(poses.length*0.66));
-  const finishElbow=percentile(tail.map(p=>bestSideElbow(p.kp).max),0.9);
+  const finishElbow=percentile(tail.map(p=>bestSideElbow(p.kp,p.kp3D).max),0.9);
   // symmetry: mean |L-R| knee across clip, normalized
   const sym=mean(poses.map(p=>{ const l=angleDeg(pick(p.kp,"left_hip"),pick(p.kp,"left_knee"),pick(p.kp,"left_ankle")); const r=angleDeg(pick(p.kp,"right_hip"),pick(p.kp,"right_knee"),pick(p.kp,"right_ankle")); return (l!=null&&r!=null)?Math.abs(l-r):null; }));
 
   // ----- form-comparison measures -----
-  const measTorso=median(poses.map(p=>torsoLeanDeg(p.kp)));
+  const measTorso=median(poses.map(p=>torsoLeanDeg(p.kp,p.kp3D)));
   let peakT=null,peakExt=-1;
-  poses.forEach(p=>{ const eb=bestSideElbow(p.kp); const e=eb.max; if(e!=null&&e>peakExt){ peakExt=e; peakT=p.t; } });
+  poses.forEach(p=>{ const eb=bestSideElbow(p.kp,p.kp3D); const e=eb.max; if(e!=null&&e>peakExt){ peakExt=e; peakT=p.t; } });
   const dur=data.dur||(poses.length?poses[poses.length-1].t:0);
 
   // ----- category scores (0..100), hand-tuned -----
