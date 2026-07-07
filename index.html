@@ -102,8 +102,8 @@ function recruitStats(sessions){
 
 // How much each move leans on each category. base=stance/balance, power=load+explosiveness, mech=range of motion, finish=extension/symmetry
 const PROFILES = {
-  "Jump shot":{base:0.2,power:0.3,mech:0.2,finish:0.3,load:[110,145]},
-  "Free throw":{base:0.32,power:0.13,mech:0.25,finish:0.3,load:[125,155]},
+  "Jump shot":{base:0.2,power:0.3,mech:0.2,finish:0.3,load:[110,145],sym:true},
+  "Free throw":{base:0.32,power:0.13,mech:0.25,finish:0.3,load:[125,155],sym:true},
   "Layup":{base:0.2,power:0.35,mech:0.2,finish:0.25,load:[110,150]},
   "Crossover dribble":{base:0.4,power:0.2,mech:0.25,finish:0.15,load:[120,160]},
   "Free kick":{base:0.25,power:0.35,mech:0.25,finish:0.15,load:[110,150]},
@@ -118,7 +118,7 @@ const PROFILES = {
   "Footwork":{base:0.5,power:0.2,mech:0.2,finish:0.1,load:[130,170]},
   "Driver swing":{base:0.25,power:0.3,mech:0.3,finish:0.15,load:[120,155]},
   "Iron shot":{base:0.3,power:0.25,mech:0.3,finish:0.15,load:[125,160]},
-  "Putt":{base:0.5,power:0.1,mech:0.3,finish:0.1,load:[140,170]},
+  "Putt":{base:0.5,power:0.1,mech:0.3,finish:0.1,load:[140,170],sym:true},
   "Driver swing ":{base:0.25,power:0.3,mech:0.3,finish:0.15,load:[120,155]},
   "Block start":{base:0.25,power:0.4,mech:0.2,finish:0.15,load:[90,135]},
   "Acceleration":{base:0.3,power:0.35,mech:0.2,finish:0.15,load:[100,145]},
@@ -368,7 +368,13 @@ function analyzeMotion(data, sport, move, legend, level, refData, refMeasurement
   // ----- category scores (0..100), hand-tuned -----
   const driftScore=scoreLower(drift,0.02,0.22);
   const baseScoreW=scoreRange(baseWidth,0.9,2.4,1.1);
-  const base=avgScores([driftScore,baseScoreW]);
+  // L/R knee symmetry only counts toward the score for moves where an even,
+  // square stance is actually correct technique (P.sym). Most moves in this app
+  // — kicks, swings, pitches, serves, sprint blocks — have a deliberately
+  // staggered stance (plant leg vs. kicking/swinging leg), so a large L/R
+  // difference there is correct mechanics, not a flaw to penalize.
+  const symScore=P.sym?scoreLower(sym,4,45):null;
+  const base=avgScores([driftScore,baseScoreW,symScore]);
 
   const loadScore=hasKnee?scoreRange(minKnee,P.load[0],P.load[1],45):null;
   const explosiveScore=scoreHigher(rise,0.04,0.32);
@@ -379,8 +385,7 @@ function analyzeMotion(data, sport, move, legend, level, refData, refMeasurement
   const mech=avgScores([elbowROMScore,kneeROMScore]);
 
   const extScore=scoreHigher(finishElbow,120,178);
-  const symScore=scoreLower(sym,4,45);
-  const finish=avgScores([extScore,symScore]);
+  const finish=avgScores([extScore]);
 
   // weighted overall
   const cats={base,power,mech,finish};
@@ -402,7 +407,7 @@ function analyzeMotion(data, sport, move, legend, level, refData, refMeasurement
   const baseNote = base==null?"Couldn't read your base clearly." : base>=80?"Quiet, level base — minimal sway through the rep." : base>=60?`Mostly steady; some lateral drift to tighten.` : "Base drifts under load — widen the stance and steady your center.";
   const loadNote = !hasKnee?"Knee bend wasn't readable in these frames." : minKnee<=P.load[1]&&minKnee>=P.load[0]-10?`Strong load — knees bend to ~${r(minKnee)}° at the deepest point.` : minKnee>P.load[1]?`Shallow load (~${r(minKnee)}°) — bend deeper to drive from the ground.` : `Very deep bend (~${r(minKnee)}°) — make sure it's controlled, not a collapse.`;
   const mechNote = mech==null?"Range of motion wasn't readable." : mech>=80?`Full range — arm swings through ~${r(elbowROM)}° of motion.` : mech>=60?"Decent range; let the motion travel a touch further." : `Limited range (~${r(elbowROM)}° at the arm) — open up the full motion path.`;
-  const finishNote = finish==null?"Follow-through wasn't readable." : finish>=80?`Long, balanced finish — arm extends to ~${r(finishElbow)}°.` : finish>=60?"Finish is okay; hold the extension a beat longer." : `Finish cuts short (arm to ~${r(finishElbow)}°) — extend fully and stay symmetric.`;
+  const finishNote = finish==null?"Follow-through wasn't readable." : finish>=80?`Long, balanced finish — arm extends to ~${r(finishElbow)}°.` : finish>=60?"Finish is okay; hold the extension a beat longer." : `Finish cuts short (arm to ~${r(finishElbow)}°) — extend fully through the motion.`;
 
   const phases=[
     {name:"Base & balance", score:base==null?50:base, note:baseNote},
@@ -720,11 +725,15 @@ function App(){
       phases: rep.phases.map(p=>({name:p.name,score:p.score})),
       comparison: rep.comparison,
       measured_notes: rep.observed,
+      specific_measured_differences: (rep.match&&rep.match.lines)||[],
     };
-    const prompt = `You are an elite ${sport} coach. A pose tracker measured this athlete's "${move}" from video and produced these REAL numbers (0-100 scores from tracked joint angles). Do NOT change the numbers. Compare them to ${legend} as an aspirational benchmark; do not invent quotes.
+    const benchmarkNote = rep.match&&rep.match.real
+      ? `The "specific_measured_differences" below are real measured numbers from an actual reference clip (${rep.match.refLabel||"a reference clip"}) — treat them as ground truth, not estimates.`
+      : `Compare them to ${legend} as an aspirational benchmark; do not invent quotes or claim these are ${legend}'s real measured data — the legend numbers are an idealized illustrative target, not motion-capture.`;
+    const prompt = `You are an elite ${sport} coach. A pose tracker measured this athlete's "${move}" from video and produced these REAL numbers (0-100 scores from tracked joint angles). Do NOT change the numbers. ${benchmarkNote}
 Measured data: ${JSON.stringify(measured)}
 Athlete level: ${level}.
-Write sharper, motivating-but-honest coaching grounded ONLY in these numbers. Respond with ONLY minified JSON, no markdown:
+Write sharper, motivating-but-honest coaching grounded ONLY in these numbers, referencing the specific measured differences where useful. Respond with ONLY minified JSON, no markdown:
 {"summary":"<2 sentences under 45 words>","analysis":["<3 short paragraphs, each under 30 words, referencing the actual scores>"],"plan":[{"title":"<focus area>","why":"<1 sentence>","drills":["<drill>","<drill>","<drill>"],"goal":"<measurable weekly goal>","weeks":["Week 1 — ...","Week 2 — ...","Week 3 — ..."]}]}
 Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
     const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`;
