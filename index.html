@@ -103,22 +103,37 @@ function recruitStats(sessions){
 // How much each move leans on each category. base=stance/balance, power=load+explosiveness, mech=range of motion, finish=extension/symmetry
 const PROFILES = {
   "Jump shot":{base:0.2,power:0.3,mech:0.2,finish:0.3,load:[110,145],sym:true},
-  "Free throw":{base:0.32,power:0.13,mech:0.25,finish:0.3,load:[125,155],sym:true},
+  // load range sourced from a markerless-motion-capture study of proficient free-
+  // throw shooters: knee angle 113.3°±9.1° at the load/preparatory phase.
+  // (PMC10436204, "Biomechanical characteristics of proficient free-throw shooters")
+  "Free throw":{base:0.32,power:0.13,mech:0.25,finish:0.3,load:[100,128],sym:true},
   "Layup":{base:0.2,power:0.35,mech:0.2,finish:0.25,load:[110,150]},
   "Crossover dribble":{base:0.4,power:0.2,mech:0.25,finish:0.15,load:[120,160]},
-  "Free kick":{base:0.25,power:0.35,mech:0.25,finish:0.15,load:[110,150]},
-  "Penalty kick":{base:0.3,power:0.3,mech:0.25,finish:0.15,load:[115,150]},
+  // load range corrected from two independent sources: kicking-leg knee cocks
+  // back to ~77° (interior angle) during backswing, then extends to ~156-173°
+  // at ball contact — much deeper load than a jump/shot crouch. The previous
+  // [110-150] range would have scored realistic kicking mechanics as shallow.
+  // (PMC12287098 backswing depth; PMC3761486 contact-angle cross-check)
+  "Free kick":{base:0.25,power:0.35,mech:0.25,finish:0.15,load:[65,92]},
+  "Penalty kick":{base:0.3,power:0.3,mech:0.25,finish:0.15,load:[65,92]},
   "Dribbling run":{base:0.4,power:0.25,mech:0.2,finish:0.15,load:[125,165]},
   "Volley":{base:0.3,power:0.25,mech:0.3,finish:0.15,load:[120,160]},
   "Serve":{base:0.2,power:0.25,mech:0.3,finish:0.25,load:[120,155]},
   "Forehand":{base:0.25,power:0.25,mech:0.35,finish:0.15,load:[125,160]},
   "Backhand":{base:0.25,power:0.25,mech:0.35,finish:0.15,load:[125,160]},
   "Jab":{base:0.3,power:0.25,mech:0.3,finish:0.15,load:[130,165]},
-  "Cross":{base:0.3,power:0.3,mech:0.25,finish:0.15,load:[125,160]},
+  // finishRange sourced from a published comparison of elite vs. junior boxers'
+  // punch kinematics: elbow angle at impact averaged 112.9°±9.2° (elite) and
+  // 120.0°±12.4° (junior) for the cross — well short of a fully extended arm,
+  // so "more extension = better" is the wrong shape of scoring for this move.
+  "Cross":{base:0.3,power:0.3,mech:0.25,finish:0.15,load:[125,160],finishRange:[95,130,20]},
   "Footwork":{base:0.5,power:0.2,mech:0.2,finish:0.1,load:[130,170]},
   "Driver swing":{base:0.25,power:0.3,mech:0.3,finish:0.15,load:[120,155]},
   "Iron shot":{base:0.3,power:0.25,mech:0.3,finish:0.15,load:[125,160]},
   "Putt":{base:0.5,power:0.1,mech:0.3,finish:0.1,load:[140,170],sym:true,controlledMech:true},
+  // load range independently confirmed against real sprint-start research: front
+  // knee ~90-99°, rear knee ~90-136° in the "set" position (PMC6684547) — the
+  // existing hand-tuned range already matched, no change needed.
   "Block start":{base:0.25,power:0.4,mech:0.2,finish:0.15,load:[90,135]},
   "Acceleration":{base:0.3,power:0.35,mech:0.2,finish:0.15,load:[100,145]},
   "Top-speed form":{base:0.3,power:0.3,mech:0.25,finish:0.15,load:[110,150]},
@@ -387,7 +402,10 @@ function analyzeMotion(data, sport, move, legend, level, refData, refMeasurement
   const kneeROMScore=P.controlledMech?scoreRange(kneeROM,2,15,10):scoreHigher(kneeROM,15,55);
   const mech=avgScores([elbowROMScore,kneeROMScore]);
 
-  const extScore=scoreHigher(finishElbow,120,178);
+  // most moves genuinely benefit from more arm extension at the finish, but a
+  // few (see finishRange, sourced from real research) have a correct impact
+  // angle well short of full extension — reward matching that instead.
+  const extScore=P.finishRange?scoreRange(finishElbow,P.finishRange[0],P.finishRange[1],P.finishRange[2]):scoreHigher(finishElbow,120,178);
   const finish=avgScores([extScore]);
 
   // weighted overall
@@ -412,7 +430,9 @@ function analyzeMotion(data, sport, move, legend, level, refData, refMeasurement
   const mechNote = mech==null?"Range of motion wasn't readable." : P.controlledMech
     ? (mech>=80?`Compact, controlled stroke — arm moves through only ~${r(elbowROM)}° of motion.` : mech>=60?"Stroke is fairly controlled; steady it a touch more." : `Stroke swings too far (~${r(elbowROM)}° at the arm) — keep it short and controlled for consistent distance.`)
     : (mech>=80?`Full range — arm swings through ~${r(elbowROM)}° of motion.` : mech>=60?"Decent range; let the motion travel a touch further." : `Limited range (~${r(elbowROM)}° at the arm) — open up the full motion path.`);
-  const finishNote = finish==null?"Follow-through wasn't readable." : finish>=80?`Long, balanced finish — arm extends to ~${r(finishElbow)}°.` : finish>=60?"Finish is okay; hold the extension a beat longer." : `Finish cuts short (arm to ~${r(finishElbow)}°) — extend fully through the motion.`;
+  const finishNote = finish==null?"Follow-through wasn't readable." : P.finishRange
+    ? (finish>=80?`Clean impact position — arm at ~${r(finishElbow)}°, right in the target range for this punch.` : finishElbow!=null&&finishElbow<P.finishRange[0]?`Too little extension (~${r(finishElbow)}°) — snap through the target a bit more.` : finishElbow!=null&&finishElbow>P.finishRange[1]?`Over-extending (~${r(finishElbow)}°) — a fully straight arm at impact isn't correct technique here; keep a slight bend.` : "Extension is close, but not quite locked into the target range.")
+    : (finish>=80?`Long, balanced finish — arm extends to ~${r(finishElbow)}°.` : finish>=60?"Finish is okay; hold the extension a beat longer." : `Finish cuts short (arm to ~${r(finishElbow)}°) — extend fully through the motion.`);
 
   const phases=[
     {name:"Base & balance", score:base==null?50:base, note:baseNote},
