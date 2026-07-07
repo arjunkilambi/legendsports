@@ -118,7 +118,7 @@ const PROFILES = {
   "Footwork":{base:0.5,power:0.2,mech:0.2,finish:0.1,load:[130,170]},
   "Driver swing":{base:0.25,power:0.3,mech:0.3,finish:0.15,load:[120,155]},
   "Iron shot":{base:0.3,power:0.25,mech:0.3,finish:0.15,load:[125,160]},
-  "Putt":{base:0.5,power:0.1,mech:0.3,finish:0.1,load:[140,170],sym:true},
+  "Putt":{base:0.5,power:0.1,mech:0.3,finish:0.1,load:[140,170],sym:true,controlledMech:true},
   "Block start":{base:0.25,power:0.4,mech:0.2,finish:0.15,load:[90,135]},
   "Acceleration":{base:0.3,power:0.35,mech:0.2,finish:0.15,load:[100,145]},
   "Top-speed form":{base:0.3,power:0.3,mech:0.25,finish:0.15,load:[110,150]},
@@ -379,8 +379,12 @@ function analyzeMotion(data, sport, move, legend, level, refData, refMeasurement
   const explosiveScore=scoreHigher(rise,0.04,0.32);
   const power=avgScores([loadScore,explosiveScore]);
 
-  const elbowROMScore=scoreHigher(elbowROM,25,80);
-  const kneeROMScore=scoreHigher(kneeROM,15,55);
+  // "more range of motion = better" is backwards for a controlled, compact move
+  // like a putt — a big flowing stroke there is a flaw (inconsistent distance
+  // control), not a strength. Those moves reward staying within a tight,
+  // controlled range instead of maximizing it.
+  const elbowROMScore=P.controlledMech?scoreRange(elbowROM,8,35,15):scoreHigher(elbowROM,25,80);
+  const kneeROMScore=P.controlledMech?scoreRange(kneeROM,2,15,10):scoreHigher(kneeROM,15,55);
   const mech=avgScores([elbowROMScore,kneeROMScore]);
 
   const extScore=scoreHigher(finishElbow,120,178);
@@ -405,7 +409,9 @@ function analyzeMotion(data, sport, move, legend, level, refData, refMeasurement
   const r=(x)=>x==null?"—":Math.round(x);
   const baseNote = base==null?"Couldn't read your base clearly." : base>=80?"Quiet, level base — minimal sway through the rep." : base>=60?`Mostly steady; some lateral drift to tighten.` : "Base drifts under load — widen the stance and steady your center.";
   const loadNote = !hasKnee?"Knee bend wasn't readable in these frames." : minKnee<=P.load[1]&&minKnee>=P.load[0]-10?`Strong load — knees bend to ~${r(minKnee)}° at the deepest point.` : minKnee>P.load[1]?`Shallow load (~${r(minKnee)}°) — bend deeper to drive from the ground.` : `Very deep bend (~${r(minKnee)}°) — make sure it's controlled, not a collapse.`;
-  const mechNote = mech==null?"Range of motion wasn't readable." : mech>=80?`Full range — arm swings through ~${r(elbowROM)}° of motion.` : mech>=60?"Decent range; let the motion travel a touch further." : `Limited range (~${r(elbowROM)}° at the arm) — open up the full motion path.`;
+  const mechNote = mech==null?"Range of motion wasn't readable." : P.controlledMech
+    ? (mech>=80?`Compact, controlled stroke — arm moves through only ~${r(elbowROM)}° of motion.` : mech>=60?"Stroke is fairly controlled; steady it a touch more." : `Stroke swings too far (~${r(elbowROM)}° at the arm) — keep it short and controlled for consistent distance.`)
+    : (mech>=80?`Full range — arm swings through ~${r(elbowROM)}° of motion.` : mech>=60?"Decent range; let the motion travel a touch further." : `Limited range (~${r(elbowROM)}° at the arm) — open up the full motion path.`);
   const finishNote = finish==null?"Follow-through wasn't readable." : finish>=80?`Long, balanced finish — arm extends to ~${r(finishElbow)}°.` : finish>=60?"Finish is okay; hold the extension a beat longer." : `Finish cuts short (arm to ~${r(finishElbow)}°) — extend fully through the motion.`;
 
   const phases=[
