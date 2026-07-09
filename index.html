@@ -188,7 +188,10 @@ async function getDetector(){
   catch(e){ _detector=await poseDetection.createDetector(md,{modelType:poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING}); }
   return _detector;
 }
-function seekTo(v,t){ return new Promise(res=>{ const f=()=>{v.removeEventListener("seeked",f);res();}; v.addEventListener("seeked",f); v.currentTime=t; }); }
+// iOS Safari has long-standing bugs where the 'seeked' event sometimes never
+// fires for a given seek — without a fallback, that hangs the whole analysis
+// forever on one frame. Proceed with whatever frame is current if it's slow.
+function seekTo(v,t){ return new Promise(res=>{ let done=false; const fin=()=>{ if(done)return; done=true; v.removeEventListener("seeked",fin); res(); }; v.addEventListener("seeked",fin); v.currentTime=t; setTimeout(fin,1200); }); }
 function paintReady(v){ return new Promise(res=>{ let done=false; const fin=()=>{ if(!done){done=true;res();} }; if(v.requestVideoFrameCallback){ try{ v.requestVideoFrameCallback(()=>fin()); }catch(e){} } requestAnimationFrame(()=>requestAnimationFrame(fin)); setTimeout(fin,140); }); }
 function kpMap(keypoints,thr){ const m={}; keypoints.forEach(k=>{ if(k.score>=thr) m[k.name]={x:k.x,y:k.y,score:k.score}; }); return m; }
 function kpMap3D(keypoints,thr){ const m={}; (keypoints||[]).forEach(k=>{ if(k.score==null||k.score>=thr) m[k.name]={x:k.x,y:k.y,z:k.z}; }); return m; }
@@ -210,7 +213,9 @@ async function runPose(url,onProgress){
     ctx.drawImage(v,0,0,W,H);
     // quick blank-frame check (sample a few pixels)
     try{ const s=ctx.getImageData(W>>1,H>>1,1,1).data; const s2=ctx.getImageData(W>>2,H>>2,1,1).data; if((s[0]+s[1]+s[2]+s2[0]+s2[1]+s2[2])<12) blankCount++; }catch(e){}
-    let res=[]; try{ res=await det.estimatePoses(canvas,{maxPoses:1,flipHorizontal:false}); }catch(e){}
+    // same defensive timeout idea as seekTo: a stalled WebGL inference call
+    // should skip this frame, not hang the whole clip forever.
+    let res=[]; try{ res=await Promise.race([det.estimatePoses(canvas,{maxPoses:1,flipHorizontal:false}),new Promise(r=>setTimeout(()=>r([]),4000))]); }catch(e){}
     if(res&&res[0]){
       const meanScore=mean(res[0].keypoints.map(k=>k.score));
       const kp3D=(res[0].keypoints3D&&res[0].keypoints3D.length)?kpMap3D(res[0].keypoints3D,0.3):null;
