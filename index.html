@@ -561,12 +561,12 @@ function App(){
   const [coachEmail,setCoachEmail]=useState("");
   const [recruitTab,setRecruitTab]=useState("mine"); const [scoutQuery,setScoutQuery]=useState(""); const [scoutSport,setScoutSport]=useState("All");
   const [feedQuery,setFeedQuery]=useState("");
-  const [community,setCommunity]=useState([]);
+  const [community,setCommunity]=useState([]); const [communityErr,setCommunityErr]=useState("");
   const [qTitle,setQTitle]=useState(""); const [qBody,setQBody]=useState(""); const [qSport,setQSport]=useState("General");
   const [answerDrafts,setAnswerDrafts]=useState({}); const [openQ,setOpenQ]=useState(null);
   const [feed,setFeed]=useState([]); const [fTitle,setFTitle]=useState(""); const [fLink,setFLink]=useState(""); const [fDesc,setFDesc]=useState(""); const [fFormat,setFFormat]=useState("Short-form"); const [feedFilter,setFeedFilter]=useState("All");
-  const [feedback,setFeedback]=useState([]); const [fbCat,setFbCat]=useState("Idea"); const [fbMsg,setFbMsg]=useState(""); const [fbSent,setFbSent]=useState(false);
-  const [feedMode,setFeedMode]=useState("link");
+  const [feedback,setFeedback]=useState([]); const [fbCat,setFbCat]=useState("Idea"); const [fbMsg,setFbMsg]=useState(""); const [fbSent,setFbSent]=useState(false); const [feedbackErr,setFeedbackErr]=useState("");
+  const [feedMode,setFeedMode]=useState("link"); const [feedPostErr,setFeedPostErr]=useState("");
   const [feedRecording,setFeedRecording]=useState(false); const [feedRecErr,setFeedRecErr]=useState(""); const [feedRecSecs,setFeedRecSecs]=useState(0); const [recordedUrl,setRecordedUrl]=useState("");
   const feedStreamRef=useRef(null),feedRecRef=useRef(null),feedChunksRef=useRef([]),feedLiveRef=useRef(null),feedBlobRef=useRef(null);
   const [mirror,setMirror]=useState(true);
@@ -679,39 +679,43 @@ function App(){
   }
   useEffect(()=>{ if(profile){ refreshCommunity(); refreshFeed(); refreshFeedback(); } else { setCommunity([]); setFeed([]); setFeedback([]); } },[profile]);
   async function postQuestion(){
-    const t=qTitle.trim(); if(!t)return;
-    const {data:{user}}=await sb.auth.getUser(); if(!user)return;
+    setCommunityErr("");
+    const t=qTitle.trim(); if(!t){ setCommunityErr("Add a question first."); return; }
+    const {data:{user}}=await sb.auth.getUser(); if(!user){ setCommunityErr("You're signed out — reload and sign in again."); return; }
     const {data,error}=await sb.from("questions").insert({user_id:user.id,sport:qSport,title:t,body:qBody.trim()}).select("id").single();
-    if(error)return;
+    if(error){ setCommunityErr("Post failed: "+error.message); return; }
     setQTitle(""); setQBody(""); await refreshCommunity(); setOpenQ(data.id);
   }
   async function postAnswer(qid){
+    setCommunityErr("");
     const txt=(answerDrafts[qid]||"").trim(); if(!txt)return;
-    const {data:{user}}=await sb.auth.getUser(); if(!user)return;
+    const {data:{user}}=await sb.auth.getUser(); if(!user){ setCommunityErr("You're signed out — reload and sign in again."); return; }
     const {error}=await sb.from("answers").insert({question_id:qid,user_id:user.id,body:txt});
-    if(error)return;
+    if(error){ setCommunityErr("Answer failed: "+error.message); return; }
     setAnswerDrafts(d=>({...d,[qid]:""})); await refreshCommunity();
   }
   async function deleteQuestion(qid){
+    setCommunityErr("");
     const {error}=await sb.from("questions").delete().eq("id",qid);
-    if(error)return;
+    if(error){ setCommunityErr("Delete failed: "+error.message); return; }
     await refreshCommunity();
   }
   async function postClip(){
+    setFeedPostErr("");
     const t=fTitle.trim();
-    if(!t){ return; }
-    const {data:{user}}=await sb.auth.getUser(); if(!user)return;
+    if(!t){ setFeedPostErr("Add a title first."); return; }
+    const {data:{user}}=await sb.auth.getUser(); if(!user){ setFeedPostErr("You're signed out — reload and sign in again."); return; }
     let link=fLink.trim();
     if(feedMode==="record"){
       const blob=feedBlobRef.current; if(!blob){ setFeedRecErr("Nothing recorded yet."); return; }
       const path=`${user.id}/${Date.now()}.webm`;
       const {error:upErr}=await sb.storage.from("clips").upload(path,blob,{contentType:blob.type||"video/webm"});
-      if(upErr){ setFeedRecErr(upErr.message); return; }
+      if(upErr){ setFeedPostErr("Upload failed: "+upErr.message); return; }
       link=sb.storage.from("clips").getPublicUrl(path).data.publicUrl;
     }
-    if(!link){ return; }
+    if(!link){ setFeedPostErr("Add a video link first."); return; }
     const {error}=await sb.from("feed_posts").insert({user_id:user.id,title:t,link,description:fDesc.trim(),format:fFormat});
-    if(error)return;
+    if(error){ setFeedPostErr("Post failed: "+error.message); return; }
     feedBlobRef.current=null;
     setFTitle(""); setFLink(""); setFDesc(""); setRecordedUrl(""); setFeedMode("link"); await refreshFeed();
   }
@@ -721,10 +725,12 @@ function App(){
     await refreshFeed();
   }
   async function submitFeedback(){
+    setFeedbackErr("");
     const m=fbMsg.trim(); if(!m)return;
-    const {data:{user}}=await sb.auth.getUser(); if(!user)return;
+    const {data:{user}}=await sb.auth.getUser(); if(!user){ setFeedbackErr("You're signed out — reload and sign in again."); return; }
     const {error}=await sb.from("feedback").insert({user_id:user.id,category:fbCat,message:m});
-    if(!error){ setFbMsg(""); setFbSent(true); await refreshFeedback(); }
+    if(error){ setFeedbackErr("Submit failed: "+error.message); return; }
+    setFbMsg(""); setFbSent(true); await refreshFeedback();
     if(DEV_EMAIL){ window.location.href=`mailto:${DEV_EMAIL}?subject=${encodeURIComponent("LegendSports feedback: "+fbCat)}&body=${encodeURIComponent(m+"\n\n— "+(profile||"Anon"))}`; }
   }
   function videoEmbed(link){
@@ -1052,6 +1058,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                   <span style={{color:C.muted,fontSize:12}}>posting as {profile}</span>
                 </div>
                 <textarea value={qBody} onChange={e=>setQBody(e.target.value)} placeholder="Add any detail (optional)" rows={3} style={inputStyle}/>
+                {communityErr && <div style={{color:C.you,fontSize:13}}>{communityErr}</div>}
                 <div><button className="fr-btn" onClick={postQuestion} style={{...btnSolid,padding:"11px 22px"}}>Post question</button></div>
               </div>
             </div>
@@ -1138,6 +1145,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                 </div>
                 <div style={{color:C.muted,fontSize:11.5,lineHeight:1.5,marginTop:-2}}>Short-form caps at 2:30, long-form at 30:00. Recordings stop automatically at the limit; for links, length follows the source platform.</div>
                 <textarea value={fDesc} onChange={e=>setFDesc(e.target.value)} placeholder="Caption (optional)" rows={2} style={inputStyle}/>
+                {feedPostErr && <div style={{color:C.you,fontSize:13}}>{feedPostErr}</div>}
                 <div><button className="fr-btn" onClick={postClip} style={{...btnSolid,padding:"11px 22px"}}>Post clip</button></div>
               </div>
             </div>
@@ -1184,6 +1192,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
               <div style={{marginTop:14,display:"flex",alignItems:"center",gap:14}}>
                 <button className="fr-btn" onClick={submitFeedback} style={{...btnSolid,padding:"11px 24px"}}>Submit</button>
                 {fbSent && <span style={{color:C.good,fontSize:14}}>✓ Thanks — your feedback was recorded.</span>}
+                {feedbackErr && <span style={{color:C.you,fontSize:13}}>{feedbackErr}</span>}
               </div>
             </div>
             {feedback.length>0 && (
