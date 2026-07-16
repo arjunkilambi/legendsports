@@ -66,15 +66,6 @@ const SPORTS = {
 const LEVELS = ["Just starting","Recreational","Competitive / club","Elite amateur"];
 
 const STORE_KEY="legendsports_v1";
-const COMMUNITY_KEY="legendsports_community_v1";
-function loadCommunity(){ try{ return JSON.parse(localStorage.getItem(COMMUNITY_KEY))||[]; }catch(e){ return []; } }
-function saveCommunity(a){ try{ localStorage.setItem(COMMUNITY_KEY,JSON.stringify(a)); return true; }catch(e){ return false; } }
-const FEED_KEY="legendsports_feed_v1";
-function loadFeed(){ try{ return JSON.parse(localStorage.getItem(FEED_KEY))||[]; }catch(e){ return []; } }
-function saveFeed(a){ try{ localStorage.setItem(FEED_KEY,JSON.stringify(a)); return true; }catch(e){ return false; } }
-const FEEDBACK_KEY="legendsports_feedback_v1";
-function loadFeedback(){ try{ return JSON.parse(localStorage.getItem(FEEDBACK_KEY))||[]; }catch(e){ return []; } }
-function saveFeedback(a){ try{ localStorage.setItem(FEEDBACK_KEY,JSON.stringify(a)); return true; }catch(e){ return false; } }
 const DEV_EMAIL=""; // set this to your email to receive feedback as a pre-filled message
 const TEAMS_KEY="legendsports_teams_v1";
 function loadTeams(){ try{ return JSON.parse(localStorage.getItem(TEAMS_KEY))||[]; }catch(e){ return []; } }
@@ -577,7 +568,7 @@ function App(){
   const [feedback,setFeedback]=useState([]); const [fbCat,setFbCat]=useState("Idea"); const [fbMsg,setFbMsg]=useState(""); const [fbSent,setFbSent]=useState(false);
   const [feedMode,setFeedMode]=useState("link");
   const [feedRecording,setFeedRecording]=useState(false); const [feedRecErr,setFeedRecErr]=useState(""); const [feedRecSecs,setFeedRecSecs]=useState(0); const [recordedUrl,setRecordedUrl]=useState("");
-  const feedStreamRef=useRef(null),feedRecRef=useRef(null),feedChunksRef=useRef([]),feedLiveRef=useRef(null);
+  const feedStreamRef=useRef(null),feedRecRef=useRef(null),feedChunksRef=useRef([]),feedLiveRef=useRef(null),feedBlobRef=useRef(null);
   const [mirror,setMirror]=useState(true);
   const [teams,setTeams]=useState([]); const [teamName,setTeamName]=useState(""); const [teamSport,setTeamSport]=useState("Basketball"); const [teamSportOther,setTeamSportOther]=useState(""); const [joinCode,setJoinCode]=useState(""); const [teamErr,setTeamErr]=useState(""); const [openTeam,setOpenTeam]=useState(null); const [teamMsg,setTeamMsg]=useState("");
   const [rankings,setRankings]=useState([]); const [rankingsErr,setRankingsErr]=useState(""); const [rankingsLoading,setRankingsLoading]=useState(false);
@@ -660,18 +651,82 @@ function App(){
     feedChunksRef.current=[]; let mime=""; for(const m of["video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm","video/mp4"]){if(MediaRecorder.isTypeSupported(m)){mime=m;break;}}
     let rec; try{ rec=new MediaRecorder(feedStreamRef.current,mime?{mimeType:mime}:undefined); }catch(e){ setFeedRecErr("Recording isn't supported in this browser."); return; }
     feedRecRef.current=rec; rec.ondataavailable=ev=>{ if(ev.data&&ev.data.size)feedChunksRef.current.push(ev.data); };
-    rec.onstop=()=>{ const blob=new Blob(feedChunksRef.current,{type:mime||"video/webm"}); if(recordedUrl)URL.revokeObjectURL(recordedUrl); setRecordedUrl(URL.createObjectURL(blob)); stopFeedCam(); setFeedRecording(false); };
+    rec.onstop=()=>{ const blob=new Blob(feedChunksRef.current,{type:mime||"video/webm"}); feedBlobRef.current=blob; if(recordedUrl)URL.revokeObjectURL(recordedUrl); setRecordedUrl(URL.createObjectURL(blob)); stopFeedCam(); setFeedRecording(false); };
     rec.start(); setFeedRecSecs(0); setFeedRecording(true);
   }
   function stopFeedRec(){ if(feedRecRef.current&&feedRecRef.current.state!=="inactive")feedRecRef.current.stop(); }
 
-  useEffect(()=>{ setCommunity(loadCommunity()); setFeed(loadFeed()); setFeedback(loadFeedback()); },[]);
-  function postQuestion(){ const t=qTitle.trim(); if(!t)return; const q={id:Date.now(),author:profile||"Anon",sport:qSport,title:t,body:qBody.trim(),date:new Date().toISOString(),answers:[]}; const next=[q,...loadCommunity()].slice(0,200); saveCommunity(next); setCommunity(next); setQTitle(""); setQBody(""); setOpenQ(q.id); }
-  function postAnswer(qid){ const txt=(answerDrafts[qid]||"").trim(); if(!txt)return; const all=loadCommunity(); const i=all.findIndex(x=>x.id===qid); if(i<0)return; all[i].answers=[...(all[i].answers||[]),{id:Date.now(),author:profile||"Anon",body:txt,date:new Date().toISOString()}]; saveCommunity(all); setCommunity(all); setAnswerDrafts(d=>({...d,[qid]:""})); }
-  function deleteQuestion(qid){ const next=loadCommunity().filter(x=>x.id!==qid); saveCommunity(next); setCommunity(next); }
-  function postClip(){ const t=fTitle.trim(); const l=feedMode==="record"?recordedUrl:fLink.trim(); if(!t||!l){ return; } const p={id:Date.now(),author:profile||"Anon",title:t,link:l,desc:fDesc.trim(),format:fFormat,date:new Date().toISOString(),recorded:feedMode==="record"}; const next=[p,...loadFeed()].slice(0,200); saveFeed(next); setFeed(next); setFTitle(""); setFLink(""); setFDesc(""); setRecordedUrl(""); setFeedMode("link"); }
-  function deleteClip(id){ const next=loadFeed().filter(x=>x.id!==id); saveFeed(next); setFeed(next); }
-  function submitFeedback(){ const m=fbMsg.trim(); if(!m)return; const entry={id:Date.now(),author:profile||"Anon",cat:fbCat,msg:m,date:new Date().toISOString()}; const next=[entry,...loadFeedback()].slice(0,300); saveFeedback(next); setFeedback(next); setFbMsg(""); setFbSent(true); if(DEV_EMAIL){ window.location.href=`mailto:${DEV_EMAIL}?subject=${encodeURIComponent("LegendSports feedback: "+fbCat)}&body=${encodeURIComponent(m+"\n\n— "+(profile||"Anon"))}`; } }
+  async function refreshCommunity(){
+    const {data:qs,error}=await sb.from("questions").select("id,sport,title,body,created_at,profiles(username)").order("created_at",{ascending:false}).limit(200);
+    if(error)return;
+    const ids=(qs||[]).map(q=>q.id);
+    let answersByQ={};
+    if(ids.length){
+      const {data:ans}=await sb.from("answers").select("id,question_id,body,created_at,profiles(username)").in("question_id",ids).order("created_at",{ascending:true});
+      (ans||[]).forEach(a=>{ (answersByQ[a.question_id]=answersByQ[a.question_id]||[]).push({id:a.id,author:a.profiles?.username||"?",body:a.body,date:a.created_at}); });
+    }
+    setCommunity((qs||[]).map(q=>({id:q.id,author:q.profiles?.username||"?",sport:q.sport,title:q.title,body:q.body,date:q.created_at,answers:answersByQ[q.id]||[]})));
+  }
+  async function refreshFeed(){
+    const {data,error}=await sb.from("feed_posts").select("id,title,link,description,format,created_at,profiles(username)").order("created_at",{ascending:false}).limit(200);
+    if(error)return;
+    setFeed((data||[]).map(p=>({id:p.id,author:p.profiles?.username||"?",title:p.title,link:p.link,desc:p.description,format:p.format,date:p.created_at})));
+  }
+  async function refreshFeedback(){
+    const {data,error}=await sb.from("feedback").select("id,category,message,created_at").order("created_at",{ascending:false}).limit(50);
+    if(error)return;
+    setFeedback((data||[]).map(f=>({id:f.id,author:profile,cat:f.category,msg:f.message,date:f.created_at})));
+  }
+  useEffect(()=>{ if(profile){ refreshCommunity(); refreshFeed(); refreshFeedback(); } else { setCommunity([]); setFeed([]); setFeedback([]); } },[profile]);
+  async function postQuestion(){
+    const t=qTitle.trim(); if(!t)return;
+    const {data:{user}}=await sb.auth.getUser(); if(!user)return;
+    const {data,error}=await sb.from("questions").insert({user_id:user.id,sport:qSport,title:t,body:qBody.trim()}).select("id").single();
+    if(error)return;
+    setQTitle(""); setQBody(""); await refreshCommunity(); setOpenQ(data.id);
+  }
+  async function postAnswer(qid){
+    const txt=(answerDrafts[qid]||"").trim(); if(!txt)return;
+    const {data:{user}}=await sb.auth.getUser(); if(!user)return;
+    const {error}=await sb.from("answers").insert({question_id:qid,user_id:user.id,body:txt});
+    if(error)return;
+    setAnswerDrafts(d=>({...d,[qid]:""})); await refreshCommunity();
+  }
+  async function deleteQuestion(qid){
+    const {error}=await sb.from("questions").delete().eq("id",qid);
+    if(error)return;
+    await refreshCommunity();
+  }
+  async function postClip(){
+    const t=fTitle.trim();
+    if(!t){ return; }
+    const {data:{user}}=await sb.auth.getUser(); if(!user)return;
+    let link=fLink.trim();
+    if(feedMode==="record"){
+      const blob=feedBlobRef.current; if(!blob){ setFeedRecErr("Nothing recorded yet."); return; }
+      const path=`${user.id}/${Date.now()}.webm`;
+      const {error:upErr}=await sb.storage.from("clips").upload(path,blob,{contentType:blob.type||"video/webm"});
+      if(upErr){ setFeedRecErr(upErr.message); return; }
+      link=sb.storage.from("clips").getPublicUrl(path).data.publicUrl;
+    }
+    if(!link){ return; }
+    const {error}=await sb.from("feed_posts").insert({user_id:user.id,title:t,link,description:fDesc.trim(),format:fFormat});
+    if(error)return;
+    feedBlobRef.current=null;
+    setFTitle(""); setFLink(""); setFDesc(""); setRecordedUrl(""); setFeedMode("link"); await refreshFeed();
+  }
+  async function deleteClip(id){
+    const {error}=await sb.from("feed_posts").delete().eq("id",id);
+    if(error)return;
+    await refreshFeed();
+  }
+  async function submitFeedback(){
+    const m=fbMsg.trim(); if(!m)return;
+    const {data:{user}}=await sb.auth.getUser(); if(!user)return;
+    const {error}=await sb.from("feedback").insert({user_id:user.id,category:fbCat,message:m});
+    if(!error){ setFbMsg(""); setFbSent(true); await refreshFeedback(); }
+    if(DEV_EMAIL){ window.location.href=`mailto:${DEV_EMAIL}?subject=${encodeURIComponent("LegendSports feedback: "+fbCat)}&body=${encodeURIComponent(m+"\n\n— "+(profile||"Anon"))}`; }
+  }
   function videoEmbed(link){
     if(!link) return null;
     if(link.startsWith("blob:")) return <video src={link} controls style={{width:"100%",borderRadius:8,maxHeight:380,background:"#000"}}/>;
@@ -984,8 +1039,8 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
               <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:0}}>Community Q&amp;A</h2>
               <button className="fr-btn" onClick={()=>setStep("home")} style={{...btnSolid,padding:"10px 18px"}}>← Back</button>
             </div>
-            <div style={{background:"rgba(242,193,78,0.1)",border:`1px solid ${C.legend}`,color:C.legend,padding:12,borderRadius:8,marginBottom:22,fontSize:13,lineHeight:1.5}}>
-              Local preview — posts are saved on this device only, so others can't see or answer them yet. To go live as a real community, this needs a shared backend (ask me to wire one up).
+            <div style={{background:"rgba(123,196,127,0.1)",border:`1px solid ${C.good}`,color:C.good,padding:12,borderRadius:8,marginBottom:22,fontSize:13,lineHeight:1.5}}>
+              Live — questions and answers are stored in Supabase and visible to everyone.
             </div>
 
             <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"20px 22px",marginBottom:24}}>
@@ -1042,8 +1097,8 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
               <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:0}}>Highlights feed</h2>
               <button className="fr-btn" onClick={()=>setStep("home")} style={{...btnSolid,padding:"10px 18px"}}>← Back</button>
             </div>
-            <div style={{background:"rgba(242,193,78,0.1)",border:`1px solid ${C.legend}`,color:C.legend,padding:12,borderRadius:8,marginBottom:22,fontSize:13,lineHeight:1.5}}>
-              Local preview — clips are saved on this device only. Links (YouTube or direct .mp4) persist; clips you record here play this session but won't survive a reload until there's a backend with video storage.
+            <div style={{background:"rgba(123,196,127,0.1)",border:`1px solid ${C.good}`,color:C.good,padding:12,borderRadius:8,marginBottom:22,fontSize:13,lineHeight:1.5}}>
+              Live — clips (links and recordings) are stored in Supabase and visible to everyone on any device.
             </div>
 
             <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"20px 22px",marginBottom:20}}>
@@ -1072,7 +1127,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                           ? <button className="fr-btn" onClick={beginFeedRec} disabled={!!feedRecErr} style={{background:feedRecErr?C.panel2:C.you,color:feedRecErr?C.muted:C.ink,border:"none",borderRadius:8,padding:"10px 18px",cursor:feedRecErr?"not-allowed":"pointer",fontFamily:DISPLAY,letterSpacing:1,textTransform:"uppercase"}}>● Start recording</button>
                           : <button className="fr-btn" onClick={stopFeedRec} style={{background:C.chalk,color:C.ink,border:"none",borderRadius:8,padding:"10px 18px",cursor:"pointer",fontFamily:DISPLAY,letterSpacing:1,textTransform:"uppercase"}}>■ Stop</button>
                       ) : (
-                        <button className="fr-btn" onClick={()=>{ if(recordedUrl)URL.revokeObjectURL(recordedUrl); setRecordedUrl(""); }} style={{background:"transparent",color:C.you,border:`1px solid ${C.you}`,borderRadius:8,padding:"10px 18px",cursor:"pointer"}}>Re-record</button>
+                        <button className="fr-btn" onClick={()=>{ if(recordedUrl)URL.revokeObjectURL(recordedUrl); feedBlobRef.current=null; setRecordedUrl(""); }} style={{background:"transparent",color:C.you,border:`1px solid ${C.you}`,borderRadius:8,padding:"10px 18px",cursor:"pointer"}}>Re-record</button>
                       )}
                         <button className="fr-btn" onClick={()=>setMirror(m=>!m)} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,borderRadius:8,padding:"10px 16px",cursor:"pointer",fontSize:13}}>⇋ Mirror: {mirror?"on":"off"}</button>
                     </div>
@@ -1120,7 +1175,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
               <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:0}}>Send feedback</h2>
               <button className="fr-btn" onClick={()=>setStep("home")} style={{...btnSolid,padding:"10px 18px"}}>← Back</button>
             </div>
-            <p style={{color:C.muted,margin:"0 0 22px",fontSize:15,lineHeight:1.5}}>Tell us what's working, what's broken, or what you'd love to see. {DEV_EMAIL?"Submitting opens a pre-filled email to the team.":"Saved on this device for now — set a developer email in the file to have submissions emailed to you."}</p>
+            <p style={{color:C.muted,margin:"0 0 22px",fontSize:15,lineHeight:1.5}}>Tell us what's working, what's broken, or what you'd love to see. {DEV_EMAIL?"Submitting opens a pre-filled email to the team, and it's also saved to your account.":"Saved to your account — set a developer email in the file to have submissions emailed to you too."}</p>
             <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"20px 22px",marginBottom:20}}>
               <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
                 {["Bug","Idea","Praise","Other"].map(x=>(<button key={x} className="fr-chip" onClick={()=>setFbCat(x)} style={{background:fbCat===x?C.you:"transparent",color:fbCat===x?C.ink:C.chalk,border:`1px solid ${fbCat===x?C.you:C.line}`,borderRadius:20,padding:"7px 16px",fontSize:13,cursor:"pointer"}}>{x}</button>))}
@@ -1133,7 +1188,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
             </div>
             {feedback.length>0 && (
               <div>
-                <div style={{fontSize:12,letterSpacing:1,textTransform:"uppercase",color:C.muted,marginBottom:10,fontFamily:DISPLAY}}>Recent submissions (this device)</div>
+                <div style={{fontSize:12,letterSpacing:1,textTransform:"uppercase",color:C.muted,marginBottom:10,fontFamily:DISPLAY}}>Recent submissions</div>
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {feedback.slice(0,8).map(f=>(
                     <div key={f.id} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"12px 16px"}}>
