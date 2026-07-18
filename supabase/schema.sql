@@ -28,7 +28,15 @@ create policy "Users can update own username" on public.profiles for update usin
 create function public.handle_new_user() returns trigger as $$
 begin
   insert into public.profiles (id, username)
-  values (new.id, coalesce(new.raw_user_meta_data->>'username', split_part(new.email,'@',1)));
+  values (
+    new.id,
+    coalesce(
+      nullif(new.raw_user_meta_data->>'username',''),
+      new.phone,
+      split_part(new.email,'@',1),
+      'user_' || substr(new.id::text,1,8)
+    )
+  );
   return new;
 end;
 $$ language plpgsql security definer set search_path = public;
