@@ -558,6 +558,7 @@ function App(){
   const [authErr,setAuthErr]=useState("");
   const [authMode,setAuthMode]=useState("signup");
   const [authTaken,setAuthTaken]=useState(false);
+  const [authForgot,setAuthForgot]=useState(false);
   const [authPassword,setAuthPassword]=useState("");
   const [newPw,setNewPw]=useState("");
   const [newPw2,setNewPw2]=useState("");
@@ -756,41 +757,87 @@ function App(){
     const uname=prof?.username||user.phone||(user.email||"").split("@")[0]||"you";
     const s=loadStore(); if(!s.profiles[uname]) s.profiles[uname]={passcode:"",sessions:[]}; s.current=uname; saveStore(s);
     setProfile(uname); setSessions(s.profiles[uname].sessions||[]); setRecruit(s.profiles[uname].recruit||{});
-    setAuthEmail(""); setAuthUsername(""); setAuthPassword(""); setAuthErr(""); setAuthSent(false); setAuthTaken(false); setAuthMode("signup"); setStep("home");
+    setAuthEmail(""); setAuthUsername(""); setAuthPassword(""); setAuthErr(""); setAuthSent(false); setAuthTaken(false); setAuthForgot(false); setAuthMode("signup"); setStep("home");
   }
-  useEffect(()=>{ sb.auth.getSession().then(({data:{session}})=>{ if(session) loadProfileFromSession(); else setStep("auth"); }); },[]);
+  useEffect(()=>{
+    const isRecovery=typeof window!=="undefined" && window.location.hash.includes("type=recovery");
+    sb.auth.getSession().then(({data:{session}})=>{
+      if(session && isRecovery){ window.history.replaceState(null,"",window.location.pathname); setStep("resetPassword"); }
+      else if(session){ loadProfileFromSession(); }
+      else{ setStep("auth"); }
+    });
+  },[]);
 
   function saveRecruit(next){ const r=next||recruit; setRecruit(r); const s=loadStore(); if(s.profiles[profile]){ s.profiles[profile].recruit=r; saveStore(s); } }
   function setRecruitField(k,v){ const r={...recruit,[k]:v}; setRecruit(r); const s=loadStore(); if(s.profiles[profile]){ s.profiles[profile].recruit=r; saveStore(s); } }
 
-  function switchAuthMode(){ setAuthMode(authMode==="signup"?"signin":"signup"); setAuthErr(""); setAuthUsername(""); setAuthPassword(""); }
-  function goToSignIn(){ setAuthTaken(false); setAuthMode("signin"); setAuthUsername(""); setAuthPassword(""); setAuthErr(""); }
+  function switchAuthMode(){ setAuthMode(authMode==="signup"?"signin":"signup"); setAuthErr(""); setAuthUsername(""); setAuthPassword(""); setAuthForgot(false); }
+  function goToSignIn(){ setAuthTaken(false); setAuthForgot(false); setAuthMode("signin"); setAuthUsername(""); setAuthPassword(""); setAuthErr(""); }
+  function authButtonLabel(){
+    if(authBusy) return authMode==="signin"?"Signing in…":(authMode==="signup"&&authPassword?"Creating…":"Sending…");
+    if(authMode==="signin") return "Sign in →";
+    return authPassword?"Create account →":"Email me a login link →";
+  }
 
-  async function doSendLink(){
+  async function doSignUp(){
     const email=authEmail.trim();
     const pass=authPassword;
     if(!email){ setAuthErr("Enter your email."); return; }
     if(pass && pass.length<6){ setAuthErr("Password must be at least 6 characters."); return; }
     setAuthErr(""); setAuthBusy(true);
     try{
-      if(authMode==="signin" && pass){
-        const {error}=await sb.auth.signInWithPassword({email,password:pass});
-        if(error) throw error;
-        await loadProfileFromSession();
-        setAuthBusy(false); return;
-      }
       const {data:exists,error:checkErr}=await sb.rpc("email_has_account",{check_email:email});
       if(checkErr) throw checkErr;
-      if(authMode==="signup" && exists){ setAuthTaken(true); setAuthBusy(false); return; }
-      if(authMode==="signin" && !exists){ setAuthErr("No account found for that email — create one instead."); setAuthBusy(false); return; }
-      const uname=authMode==="signup"?authUsername.trim():"";
-      if(authMode==="signup" && pass){
+      if(exists){ setAuthTaken(true); setAuthBusy(false); return; }
+      const uname=authUsername.trim();
+      if(pass){
         const {error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:"https://legendsports.arjunkilambi.com", data: uname?{username:uname}:undefined}});
         if(error) throw error;
       } else {
         const {error}=await sb.auth.signInWithOtp({email, options:{shouldCreateUser:true, emailRedirectTo:"https://legendsports.arjunkilambi.com", data: uname?{username:uname}:undefined}});
         if(error) throw error;
       }
+      setAuthSent(true);
+    } catch(e){ setAuthErr(e.message||"Something went wrong."); }
+    setAuthBusy(false);
+  }
+
+  async function doSignIn(){
+    const email=authEmail.trim();
+    const pass=authPassword;
+    if(!email){ setAuthErr("Enter your email."); return; }
+    if(!pass){ setAuthErr("Enter your password."); return; }
+    setAuthErr(""); setAuthBusy(true);
+    try{
+      const {error}=await sb.auth.signInWithPassword({email,password:pass});
+      if(error) throw error;
+      await loadProfileFromSession();
+    } catch(e){ setAuthErr(e.message||"Something went wrong."); }
+    setAuthBusy(false);
+  }
+
+  async function doMagicLinkSignIn(){
+    const email=authEmail.trim();
+    if(!email){ setAuthErr("Enter your email."); return; }
+    setAuthErr(""); setAuthBusy(true);
+    try{
+      const {data:exists,error:checkErr}=await sb.rpc("email_has_account",{check_email:email});
+      if(checkErr) throw checkErr;
+      if(!exists){ setAuthErr("No account found for that email — create one instead."); setAuthBusy(false); return; }
+      const {error}=await sb.auth.signInWithOtp({email, options:{shouldCreateUser:true, emailRedirectTo:"https://legendsports.arjunkilambi.com"}});
+      if(error) throw error;
+      setAuthSent(true);
+    } catch(e){ setAuthErr(e.message||"Something went wrong."); }
+    setAuthBusy(false);
+  }
+
+  async function doForgotPassword(){
+    const email=authEmail.trim();
+    if(!email){ setAuthErr("Enter your email."); return; }
+    setAuthErr(""); setAuthBusy(true);
+    try{
+      const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:"https://legendsports.arjunkilambi.com"});
+      if(error) throw error;
       setAuthSent(true);
     } catch(e){ setAuthErr(e.message||"Something went wrong."); }
     setAuthBusy(false);
@@ -803,7 +850,9 @@ function App(){
     try{
       const {error}=await sb.auth.updateUser({password:newPw});
       if(error) throw error;
-      setNewPw(""); setNewPw2(""); setPwMsg("Password set — you can now sign in with it on any device.");
+      setNewPw(""); setNewPw2("");
+      if(step==="resetPassword"){ await loadProfileFromSession(); }
+      else{ setPwMsg("Password set — you can now sign in with it on any device."); }
     } catch(e){ setPwErr(e.message||"Something went wrong."); }
     setPwBusy(false);
   }
@@ -930,22 +979,56 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
         {step==="auth" && (
           <section className="fr-fade" style={{padding:"60px 0 80px",maxWidth:440,margin:"0 auto"}}>
             <h1 style={{fontFamily:DISPLAY,fontWeight:700,textTransform:"uppercase",fontSize:40,lineHeight:1,margin:"0 0 10px",textAlign:"center"}}>Welcome to <span style={{color:C.legend}}>LegendSports</span></h1>
-            <p style={{color:C.muted,textAlign:"center",margin:"0 0 28px",fontSize:15,lineHeight:1.5}}>{authTaken?"This email already has an account.":authSent?(authMode==="signup"&&authPassword?`We sent a confirmation link to ${authEmail}. Confirm it, then sign in with your password on any device.`:`We emailed a login link to ${authEmail}. Open it on this device to sign in.`):authMode==="signup"?"First time here? Enter your email and pick a username.":"Enter your email and sign in with your password, or we'll email you a login link."}</p>
+            <p style={{color:C.muted,textAlign:"center",margin:"0 0 28px",fontSize:15,lineHeight:1.5}}>{
+              authTaken ? "This email already has an account." :
+              authForgot ? (authSent ? `We sent a password reset link to ${authEmail}. Open it on this device to set a new password.` : "Enter your email and we'll send you a password reset link.") :
+              authSent ? (authMode==="signup"&&authPassword ? `We sent a confirmation link to ${authEmail}. Confirm it, then sign in with your password on any device.` : `We emailed a login link to ${authEmail}. Open it on this device to sign in.`) :
+              authMode==="signup" ? "First time here? Enter your email and pick a username." :
+              "Enter your email and password to sign in."
+            }</p>
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
               {authTaken ? (
                 <button className="fr-btn" onClick={goToSignIn} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>← Go back to sign in</button>
-              ) : !authSent ? (<>
-                <Field label="Email"><input type="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&doSendLink()}/></Field>
-                {authMode==="signup" && <Field label="Username"><input value={authUsername} onChange={e=>setAuthUsername(e.target.value)} placeholder="e.g. Sai" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&doSendLink()}/></Field>}
-                <Field label={authMode==="signup"?"Password (optional)":"Password"}><input type="password" value={authPassword} onChange={e=>setAuthPassword(e.target.value)} placeholder={authMode==="signup"?"Set one to sign in on other devices":"Leave blank for an email link instead"} style={inputStyle} onKeyDown={e=>e.key==="Enter"&&doSendLink()}/></Field>
+              ) : authForgot ? (!authSent ? (<>
+                <Field label="Email"><input type="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&doForgotPassword()}/></Field>
                 {authErr && <div style={{color:C.you,fontSize:13}}>{authErr}</div>}
-                <button className="fr-btn" onClick={doSendLink} disabled={authBusy} style={{...btnSolid,justifyContent:"center",opacity:authBusy?0.6:1}}>{authBusy?"Sending…":authPassword?(authMode==="signup"?"Create account →":"Sign in →"):"Email me a login link →"}</button>
+                <button className="fr-btn" onClick={doForgotPassword} disabled={authBusy} style={{...btnSolid,justifyContent:"center",opacity:authBusy?0.6:1}}>{authBusy?"Sending…":"Send reset link →"}</button>
+                <button className="fr-btn" onClick={()=>{setAuthForgot(false);setAuthErr("");}} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>← Back to sign in</button>
+              </>) : (<>
+                <div style={{color:C.good,fontSize:14,textAlign:"center"}}>Check your inbox (and spam folder).</div>
+                <button className="fr-btn" onClick={()=>{setAuthForgot(false);setAuthSent(false);setAuthErr("");}} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>← Back to sign in</button>
+              </>)) : !authSent ? (<>
+                <Field label="Email"><input type="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&(authMode==="signup"?doSignUp():doSignIn())}/></Field>
+                {authMode==="signup" && <Field label="Username"><input value={authUsername} onChange={e=>setAuthUsername(e.target.value)} placeholder="e.g. Sai" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&doSignUp()}/></Field>}
+                <Field label={authMode==="signup"?"Password (optional)":"Password"}><input type="password" value={authPassword} onChange={e=>setAuthPassword(e.target.value)} placeholder={authMode==="signup"?"Set one to sign in on other devices":"Your password"} style={inputStyle} onKeyDown={e=>e.key==="Enter"&&(authMode==="signup"?doSignUp():doSignIn())}/></Field>
+                {authErr && <div style={{color:C.you,fontSize:13}}>{authErr}</div>}
+                <button className="fr-btn" onClick={authMode==="signup"?doSignUp:doSignIn} disabled={authBusy} style={{...btnSolid,justifyContent:"center",opacity:authBusy?0.6:1}}>{authButtonLabel()}</button>
+                {authMode==="signin" && (
+                  <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+                    <button className="fr-btn" onClick={()=>{setAuthForgot(true);setAuthErr("");}} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>Forgot password?</button>
+                    <button className="fr-btn" onClick={doMagicLinkSignIn} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>Email me a login link instead</button>
+                  </div>
+                )}
                 <button className="fr-btn" onClick={switchAuthMode} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>{authMode==="signup"?"Already have an account? Sign in":"New here? Create an account"}</button>
               </>) : (<>
                 <div style={{color:C.good,fontSize:14,textAlign:"center"}}>Check your inbox (and spam folder).</div>
                 <button className="fr-btn" onClick={()=>{setAuthSent(false);setAuthErr("");setAuthPassword("");}} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>← Use a different email</button>
               </>)}
               <div style={{color:C.muted,fontSize:11.5,lineHeight:1.5,textAlign:"center"}}>This is a real account (secured by Supabase) — that's what lets teammates on other devices see your team chat.</div>
+            </div>
+          </section>
+        )}
+
+        {step==="resetPassword" && (
+          <section className="fr-fade" style={{padding:"60px 0 80px",maxWidth:440,margin:"0 auto"}}>
+            <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:"0 0 8px",textAlign:"center"}}>Set a new password</h2>
+            <p style={{color:C.muted,textAlign:"center",margin:"0 0 28px",fontSize:15,lineHeight:1.5}}>Choose a new password for your account.</p>
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              <Field label="New password"><input type="password" value={newPw} onChange={e=>setNewPw(e.target.value)} placeholder="At least 6 characters" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&setPassword()}/></Field>
+              <Field label="Confirm password"><input type="password" value={newPw2} onChange={e=>setNewPw2(e.target.value)} placeholder="Type it again" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&setPassword()}/></Field>
+              {pwErr && <div style={{color:C.you,fontSize:13}}>{pwErr}</div>}
+              <button className="fr-btn" onClick={setPassword} disabled={pwBusy} style={{...btnSolid,justifyContent:"center",opacity:pwBusy?0.6:1}}>{pwBusy?"Saving…":"Save and continue →"}</button>
+              <button className="fr-btn" onClick={signOut} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>Cancel</button>
             </div>
           </section>
         )}
