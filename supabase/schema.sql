@@ -261,3 +261,11 @@ create or replace function public.team_rankings() returns table(
   order by avg_score desc nulls last, session_count desc;
 $$;
 grant execute on function public.team_rankings() to anon, authenticated;
+
+-- lets the sign-up form check whether an email is already registered before
+-- creating an account, without exposing any other row from auth.users
+create or replace function public.email_has_account(check_email text) returns boolean
+language sql security definer set search_path = public stable as $$
+  select exists(select 1 from auth.users where lower(email) = lower(check_email));
+$$;
+grant execute on function public.email_has_account(text) to anon, authenticated;
