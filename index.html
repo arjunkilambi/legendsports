@@ -774,29 +774,23 @@ function App(){
   function switchAuthMode(){ setAuthMode(authMode==="signup"?"signin":"signup"); setAuthErr(""); setAuthUsername(""); setAuthPassword(""); setAuthForgot(false); }
   function goToSignIn(){ setAuthTaken(false); setAuthForgot(false); setAuthMode("signin"); setAuthUsername(""); setAuthPassword(""); setAuthErr(""); }
   function authButtonLabel(){
-    if(authBusy) return authMode==="signin"?"Signing in…":(authMode==="signup"&&authPassword?"Creating…":"Sending…");
-    if(authMode==="signin") return "Sign in →";
-    return authPassword?"Create account →":"Email me a login link →";
+    if(authBusy) return authMode==="signin"?"Signing in…":"Creating…";
+    return authMode==="signin"?"Sign in →":"Create account →";
   }
 
   async function doSignUp(){
     const email=authEmail.trim();
     const pass=authPassword;
     if(!email){ setAuthErr("Enter your email."); return; }
-    if(pass && pass.length<6){ setAuthErr("Password must be at least 6 characters."); return; }
+    if(!pass || pass.length<6){ setAuthErr("Password must be at least 6 characters."); return; }
     setAuthErr(""); setAuthBusy(true);
     try{
       const {data:exists,error:checkErr}=await sb.rpc("email_has_account",{check_email:email});
       if(checkErr) throw checkErr;
       if(exists){ setAuthTaken(true); setAuthBusy(false); return; }
       const uname=authUsername.trim();
-      if(pass){
-        const {error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:"https://legendsports.arjunkilambi.com", data: uname?{username:uname}:undefined}});
-        if(error) throw error;
-      } else {
-        const {error}=await sb.auth.signInWithOtp({email, options:{shouldCreateUser:true, emailRedirectTo:"https://legendsports.arjunkilambi.com", data: uname?{username:uname}:undefined}});
-        if(error) throw error;
-      }
+      const {error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:"https://legendsports.arjunkilambi.com", data: uname?{username:uname}:undefined}});
+      if(error) throw error;
       setAuthSent(true);
     } catch(e){ setAuthErr(e.message||"Something went wrong."); }
     setAuthBusy(false);
@@ -982,8 +976,8 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
             <p style={{color:C.muted,textAlign:"center",margin:"0 0 28px",fontSize:15,lineHeight:1.5}}>{
               authTaken ? "This email already has an account." :
               authForgot ? (authSent ? `We sent a password reset link to ${authEmail}. Open it on this device to set a new password.` : "Enter your email and we'll send you a password reset link.") :
-              authSent ? (authMode==="signup"&&authPassword ? `We sent a confirmation link to ${authEmail}. Confirm it, then sign in with your password on any device.` : `We emailed a login link to ${authEmail}. Open it on this device to sign in.`) :
-              authMode==="signup" ? "First time here? Enter your email and pick a username." :
+              authSent ? (authMode==="signup" ? `We sent a confirmation link to ${authEmail}. Confirm it, then sign in with your password on any device.` : `We emailed a login link to ${authEmail}. Open it on this device to sign in.`) :
+              authMode==="signup" ? "First time here? Enter your email, pick a username, and set a password." :
               "Enter your email and password to sign in."
             }</p>
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
@@ -1000,7 +994,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
               </>)) : !authSent ? (<>
                 <Field label="Email"><input type="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&(authMode==="signup"?doSignUp():doSignIn())}/></Field>
                 {authMode==="signup" && <Field label="Username"><input value={authUsername} onChange={e=>setAuthUsername(e.target.value)} placeholder="e.g. Sai" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&doSignUp()}/></Field>}
-                <Field label={authMode==="signup"?"Password (optional)":"Password"}><input type="password" value={authPassword} onChange={e=>setAuthPassword(e.target.value)} placeholder={authMode==="signup"?"Set one to sign in on other devices":"Your password"} style={inputStyle} onKeyDown={e=>e.key==="Enter"&&(authMode==="signup"?doSignUp():doSignIn())}/></Field>
+                <Field label="Password"><input type="password" value={authPassword} onChange={e=>setAuthPassword(e.target.value)} placeholder={authMode==="signup"?"At least 6 characters":"Your password"} style={inputStyle} onKeyDown={e=>e.key==="Enter"&&(authMode==="signup"?doSignUp():doSignIn())}/></Field>
                 {authErr && <div style={{color:C.you,fontSize:13}}>{authErr}</div>}
                 <button className="fr-btn" onClick={authMode==="signup"?doSignUp:doSignIn} disabled={authBusy} style={{...btnSolid,justifyContent:"center",opacity:authBusy?0.6:1}}>{authButtonLabel()}</button>
                 {authMode==="signin" && (
