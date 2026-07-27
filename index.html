@@ -858,7 +858,7 @@ function App(){
     const email=authEmail.trim();
     const pass=authPassword;
     if(!email){ setAuthErr("Enter your email."); return; }
-    if(!pass || pass.length<6){ setAuthErr("Password must be at least 6 characters."); return; }
+    if(!pass || pass.length<10){ setAuthErr("Password must be at least 10 characters."); return; }
     setAuthErr(""); setAuthBusy(true);
     try{
       const {data:exists,error:checkErr}=await sb.rpc("email_has_account",{check_email:email});
@@ -926,7 +926,7 @@ function App(){
   }
 
   async function setPassword(){
-    if(newPw.length<6){ setPwErr("Password must be at least 6 characters."); setPwMsg(""); return; }
+    if(newPw.length<10){ setPwErr("Password must be at least 10 characters."); setPwMsg(""); return; }
     if(newPw!==newPw2){ setPwErr("Passwords don't match."); setPwMsg(""); return; }
     setPwErr(""); setPwMsg(""); setPwBusy(true);
     try{
@@ -1120,7 +1120,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
               </>)) : !authSent ? (<>
                 <Field label="Email"><input type="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&(authMode==="signup"?doSignUp():doSignIn())}/></Field>
                 {authMode==="signup" && <Field label="Username"><input value={authUsername} onChange={e=>setAuthUsername(e.target.value)} placeholder="e.g. Sai" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&doSignUp()}/></Field>}
-                <Field label="Password"><input type="password" value={authPassword} onChange={e=>setAuthPassword(e.target.value)} placeholder={authMode==="signup"?"At least 6 characters":"Your password"} style={inputStyle} onKeyDown={e=>e.key==="Enter"&&(authMode==="signup"?doSignUp():doSignIn())}/></Field>
+                <Field label="Password"><input type="password" value={authPassword} onChange={e=>setAuthPassword(e.target.value)} placeholder={authMode==="signup"?"At least 10 characters":"Your password"} style={inputStyle} onKeyDown={e=>e.key==="Enter"&&(authMode==="signup"?doSignUp():doSignIn())}/></Field>
                 {authErr && <div style={{color:C.you,fontSize:13}}>{authErr}</div>}
                 <button className="fr-btn" onClick={authMode==="signup"?doSignUp:doSignIn} disabled={authBusy} style={{...btnSolid,justifyContent:"center",opacity:authBusy?0.6:1}}>{authButtonLabel()}</button>
                 {authMode==="signin" && (
@@ -1145,7 +1145,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
             <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:"0 0 8px",textAlign:"center"}}>Set a new password</h2>
             <p style={{color:C.muted,textAlign:"center",margin:"0 0 28px",fontSize:15,lineHeight:1.5}}>Choose a new password for your account.</p>
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
-              <Field label="New password"><input type="password" value={newPw} onChange={e=>setNewPw(e.target.value)} placeholder="At least 6 characters" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&setPassword()}/></Field>
+              <Field label="New password"><input type="password" value={newPw} onChange={e=>setNewPw(e.target.value)} placeholder="At least 10 characters" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&setPassword()}/></Field>
               <Field label="Confirm password"><input type="password" value={newPw2} onChange={e=>setNewPw2(e.target.value)} placeholder="Type it again" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&setPassword()}/></Field>
               {pwErr && <div style={{color:C.you,fontSize:13}}>{pwErr}</div>}
               <button className="fr-btn" onClick={setPassword} disabled={pwBusy} style={{...btnSolid,justifyContent:"center",opacity:pwBusy?0.6:1}}>{pwBusy?"Saving…":"Save and continue →"}</button>
@@ -1159,7 +1159,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
             <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:"0 0 8px",textAlign:"center"}}>Account</h2>
             <p style={{color:C.muted,textAlign:"center",margin:"0 0 28px",fontSize:15,lineHeight:1.5}}>Set a password so you can sign in directly on other devices, without waiting on an email link.</p>
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
-              <Field label="New password"><input type="password" value={newPw} onChange={e=>setNewPw(e.target.value)} placeholder="At least 6 characters" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&setPassword()}/></Field>
+              <Field label="New password"><input type="password" value={newPw} onChange={e=>setNewPw(e.target.value)} placeholder="At least 10 characters" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&setPassword()}/></Field>
               <Field label="Confirm password"><input type="password" value={newPw2} onChange={e=>setNewPw2(e.target.value)} placeholder="Type it again" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&setPassword()}/></Field>
               {pwErr && <div style={{color:C.you,fontSize:13}}>{pwErr}</div>}
               {pwMsg && <div style={{color:C.good,fontSize:13}}>{pwMsg}</div>}
