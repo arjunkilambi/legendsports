@@ -88,7 +88,7 @@ async function getCaptchaToken(){
         document.body.appendChild(el);
       }
       turnstileWidgetId=ts.render(el,{
-        sitekey:TURNSTILE_SITE_KEY, appearance:"interaction-only", execution:"execute",
+        sitekey:TURNSTILE_SITE_KEY, appearance:"always", size:"compact", execution:"execute",
         callback:(token)=>{ if(turnstileResolve){ turnstileResolve(token); turnstileResolve=null; } },
         "error-callback":()=>{ if(turnstileResolve){ turnstileResolve(undefined); turnstileResolve=null; } },
       });
