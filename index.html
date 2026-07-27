@@ -16,6 +16,12 @@
   select,textarea,input{font-family:'Inter',Arial,sans-serif;}
   button:focus-visible,label:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #FF6A3D;outline-offset:2px;}
   @media print{ body *{visibility:hidden!important;} #recruit-card,#recruit-card *{visibility:visible!important;} #recruit-card{position:absolute;left:0;top:0;width:100%;border:none!important;} .no-print{display:none!important;} }
+  .fr-hamburger{display:none;}
+  @media (max-width:760px){
+    .fr-header{padding:16px 0!important;}
+    .fr-header-nav{display:none!important;}
+    .fr-hamburger{display:flex!important;}
+  }
 </style>
 </head>
 <body>
@@ -550,6 +556,7 @@ function App(){
   const streamRef=useRef(null), recorderRef=useRef(null), chunksRef=useRef([]), liveRef=useRef(null);
 
   const [profile,setProfile]=useState(null);
+  const [navOpen,setNavOpen]=useState(false);
   const [sessions,setSessions]=useState([]);
   const [authEmail,setAuthEmail]=useState("");
   const [authUsername,setAuthUsername]=useState("");
@@ -945,28 +952,60 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
   return (
     <div style={{background:C.ink,color:C.chalk,minHeight:"100vh",fontFamily:BODY}}>
       <div style={{maxWidth:980,margin:"0 auto",padding:"0 20px"}}>
-        <header style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"22px 0",borderBottom:`1px solid ${C.line}`}}>
-          <div style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer"}} onClick={reset}>
-            <div style={{width:30,height:30,borderRadius:6,background:C.you,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:DISPLAY,fontWeight:700,color:C.ink}}>LS</div>
-            <span style={{fontFamily:DISPLAY,fontWeight:600,letterSpacing:1.5,textTransform:"uppercase"}}>LegendSports</span>
+        <header className="fr-header" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"22px 0",borderBottom:`1px solid ${C.line}`,flexWrap:"wrap"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",flex:"none"}} onClick={reset}>
+            <div style={{width:30,height:30,borderRadius:6,background:C.you,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:DISPLAY,fontWeight:700,color:C.ink,flexShrink:0}}>LS</div>
+            <span style={{fontFamily:DISPLAY,fontWeight:600,letterSpacing:1.5,textTransform:"uppercase",whiteSpace:"nowrap"}}>LegendSports</span>
           </div>
           {profile ? (
-            <div style={{display:"flex",alignItems:"center",gap:14,fontSize:13}}>
-              <button className="fr-btn" onClick={()=>setStep("history")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>History ({sessions.length})</button>
-              <button className="fr-btn" onClick={()=>setStep("recruit")} style={{background:"transparent",color:C.legend,border:`1px solid ${C.legend}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Recruiting</button>
-              <button className="fr-btn" onClick={()=>setStep("community")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Community</button>
-              <button className="fr-btn" onClick={()=>setStep("feed")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Feed</button>
-              <button className="fr-btn" onClick={()=>setStep("feedback")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Feedback</button>
-              <button className="fr-btn" onClick={()=>{setOpenTeam(null);setStep("teams");}} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Teams</button>
-              <button className="fr-btn" onClick={()=>setStep("rankings")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Rankings</button>
-              <span style={{color:C.muted}}>{profile}</span>
-              <button className="fr-btn" onClick={()=>{setPwErr("");setPwMsg("");setStep("account");}} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Account</button>
-              <button className="fr-btn" onClick={signOut} style={{background:"transparent",color:C.you,border:"none",cursor:"pointer",fontSize:13}}>Switch</button>
-            </div>
+            <>
+              <div className="fr-header-nav" style={{display:"flex",alignItems:"center",gap:14,fontSize:13,flexWrap:"wrap",justifyContent:"flex-end"}}>
+                <button className="fr-btn" onClick={()=>setStep("history")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>History ({sessions.length})</button>
+                <button className="fr-btn" onClick={()=>setStep("recruit")} style={{background:"transparent",color:C.legend,border:`1px solid ${C.legend}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Recruiting</button>
+                <button className="fr-btn" onClick={()=>setStep("community")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Community</button>
+                <button className="fr-btn" onClick={()=>setStep("feed")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Feed</button>
+                <button className="fr-btn" onClick={()=>setStep("feedback")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Feedback</button>
+                <button className="fr-btn" onClick={()=>{setOpenTeam(null);setStep("teams");}} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Teams</button>
+                <button className="fr-btn" onClick={()=>setStep("rankings")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Rankings</button>
+                <span style={{color:C.muted}}>{profile}</span>
+                <button className="fr-btn" onClick={()=>{setPwErr("");setPwMsg("");setStep("account");}} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Account</button>
+                <button className="fr-btn" onClick={signOut} style={{background:"transparent",color:C.you,border:"none",cursor:"pointer",fontSize:13}}>Switch</button>
+              </div>
+              <button className="fr-hamburger" onClick={()=>setNavOpen(true)} aria-label="Open menu" style={{alignItems:"center",justifyContent:"center",background:"transparent",border:`1px solid ${C.line}`,color:C.chalk,width:38,height:38,borderRadius:8,cursor:"pointer",fontSize:16,flex:"none"}}>☰</button>
+            </>
           ) : (
             <span style={{color:C.muted,fontSize:13}}>On-device pose tracking · no key</span>
           )}
         </header>
+
+        {profile && (
+          <>
+            <div onClick={()=>setNavOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:999,opacity:navOpen?1:0,pointerEvents:navOpen?"auto":"none",transition:"opacity .28s ease"}}/>
+            <div style={{position:"fixed",top:0,left:0,height:"100%",width:"78vw",maxWidth:300,background:C.panel,zIndex:1000,transform:navOpen?"translateX(0)":"translateX(-100%)",transition:"transform .3s cubic-bezier(.16,1,.3,1)",display:"flex",flexDirection:"column",padding:"18px 16px",boxShadow:"8px 0 24px rgba(0,0,0,0.4)",boxSizing:"border-box",overflowY:"auto"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+                <span style={{fontFamily:DISPLAY,fontWeight:600,letterSpacing:1.5,textTransform:"uppercase",fontSize:14}}>Menu</span>
+                <button className="fr-btn" onClick={()=>setNavOpen(false)} aria-label="Close menu" style={{background:"transparent",border:"none",color:C.chalk,fontSize:22,cursor:"pointer",lineHeight:1,padding:4}}>×</button>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:8,fontSize:14}}>
+                {[
+                  {label:`History (${sessions.length})`,action:()=>setStep("history"),color:C.chalk,border:C.line},
+                  {label:"Recruiting",action:()=>setStep("recruit"),color:C.legend,border:C.legend},
+                  {label:"Community",action:()=>setStep("community"),color:C.chalk,border:C.line},
+                  {label:"Feed",action:()=>setStep("feed"),color:C.chalk,border:C.line},
+                  {label:"Feedback",action:()=>setStep("feedback"),color:C.chalk,border:C.line},
+                  {label:"Teams",action:()=>{setOpenTeam(null);setStep("teams");},color:C.chalk,border:C.line},
+                  {label:"Rankings",action:()=>setStep("rankings"),color:C.chalk,border:C.line},
+                  {label:"Account",action:()=>{setPwErr("");setPwMsg("");setStep("account");},color:C.chalk,border:C.line},
+                ].map((item,i)=>(
+                  <button key={i} className="fr-btn" onClick={()=>{item.action();setNavOpen(false);}} style={{background:"transparent",color:item.color,border:`1px solid ${item.border}`,padding:"10px 14px",borderRadius:10,cursor:"pointer",fontSize:14,textAlign:"left"}}>{item.label}</button>
+                ))}
+                <div style={{height:1,background:C.line,margin:"8px 0"}}/>
+                <div style={{color:C.muted,fontSize:13,padding:"0 2px"}}>{profile}</div>
+                <button className="fr-btn" onClick={()=>{signOut();setNavOpen(false);}} style={{background:"transparent",color:C.you,border:"none",cursor:"pointer",fontSize:14,textAlign:"left",padding:"6px 2px"}}>Switch account</button>
+              </div>
+            </div>
+          </>
+        )}
 
         {error && step!=="analyzing" && (<div style={{background:"rgba(255,106,61,0.12)",border:`1px solid ${C.you}`,color:C.you,padding:12,borderRadius:8,marginTop:18,fontSize:14}}>{error}</div>)}
 
