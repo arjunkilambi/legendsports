@@ -82,9 +82,13 @@ async function getCaptchaToken(){
     turnstileResolve=resolve;
     if(turnstileWidgetId==null){
       let el=document.getElementById("fr-turnstile");
-      if(!el){ el=document.createElement("div"); el.id="fr-turnstile"; el.style.display="none"; document.body.appendChild(el); }
+      if(!el){
+        el=document.createElement("div"); el.id="fr-turnstile";
+        el.style.cssText="position:fixed;bottom:16px;right:16px;z-index:9999;";
+        document.body.appendChild(el);
+      }
       turnstileWidgetId=ts.render(el,{
-        sitekey:TURNSTILE_SITE_KEY, size:"invisible", execution:"execute",
+        sitekey:TURNSTILE_SITE_KEY, appearance:"interaction-only", execution:"execute",
         callback:(token)=>{ if(turnstileResolve){ turnstileResolve(token); turnstileResolve=null; } },
         "error-callback":()=>{ if(turnstileResolve){ turnstileResolve(undefined); turnstileResolve=null; } },
       });
