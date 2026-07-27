@@ -56,6 +56,47 @@ const sb = window.supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94YWl5aWlqZmJsZ2l0dGppbXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMjEyNTEsImV4cCI6MjA5ODU5NzI1MX0.zsX3K02zMPzxYvmwTiixGDzx4nGDuuw6hpmsK8-exQ0"
 );
 
+// Cloudflare Turnstile — Supabase's captcha protection requires a fresh token
+// on signup/signin/anonymous-signin. One invisible widget, re-executed per call.
+const TURNSTILE_SITE_KEY = "0x4AAAAAAD_MiPmjPMjMaYeF";
+let turnstileLoadPromise = null;
+let turnstileWidgetId = null;
+let turnstileResolve = null;
+function loadTurnstile(){
+  if(turnstileLoadPromise) return turnstileLoadPromise;
+  turnstileLoadPromise = new Promise((resolve)=>{
+    if(window.turnstile){ resolve(window.turnstile); return; }
+    const s=document.createElement("script");
+    s.src="https://challenges.cloudflare.com/turnstile/v0/api.js";
+    s.async=true; s.defer=true;
+    s.onload=()=>resolve(window.turnstile);
+    s.onerror=()=>resolve(null);
+    document.head.appendChild(s);
+  });
+  return turnstileLoadPromise;
+}
+async function getCaptchaToken(){
+  const ts=await loadTurnstile();
+  if(!ts) return undefined;
+  return new Promise((resolve)=>{
+    turnstileResolve=resolve;
+    if(turnstileWidgetId==null){
+      let el=document.getElementById("fr-turnstile");
+      if(!el){ el=document.createElement("div"); el.id="fr-turnstile"; el.style.display="none"; document.body.appendChild(el); }
+      turnstileWidgetId=ts.render(el,{
+        sitekey:TURNSTILE_SITE_KEY, size:"invisible", execution:"execute",
+        callback:(token)=>{ if(turnstileResolve){ turnstileResolve(token); turnstileResolve=null; } },
+        "error-callback":()=>{ if(turnstileResolve){ turnstileResolve(undefined); turnstileResolve=null; } },
+      });
+      ts.execute(turnstileWidgetId);
+    } else {
+      ts.reset(turnstileWidgetId);
+      ts.execute(turnstileWidgetId);
+    }
+    setTimeout(()=>{ if(turnstileResolve){ turnstileResolve(undefined); turnstileResolve=null; } }, 8000);
+  });
+}
+
 const C = { ink:"#10130F", panel:"#191E18", panel2:"#212821", chalk:"#F3F0E4", muted:"#9AA39A", line:"rgba(243,240,228,0.12)", you:"#FF6A3D", legend:"#F2C14E", good:"#7BC47F" };
 const DISPLAY="'Oswald','Arial Narrow','Helvetica Neue',sans-serif";
 const BODY="'Inter','Helvetica Neue',Arial,sans-serif";
@@ -793,7 +834,8 @@ function App(){
   async function ensureAuthedUser(){
     const {data:{user}}=await sb.auth.getUser();
     if(user) return user;
-    const {data,error}=await sb.auth.signInAnonymously();
+    const captchaToken=await getCaptchaToken();
+    const {data,error}=await sb.auth.signInAnonymously({options:{captchaToken}});
     if(error) return null;
     return data.user;
   }
@@ -819,14 +861,15 @@ function App(){
       if(checkErr) throw checkErr;
       if(exists){ setAuthTaken(true); setAuthBusy(false); return; }
       const uname=authUsername.trim();
+      const captchaToken=await getCaptchaToken();
       const {data:{session}}=await sb.auth.getSession();
       if(session && session.user && session.user.is_anonymous){
         // upgrade the guest's anonymous identity in place so anything they already posted stays theirs
-        const {error}=await sb.auth.updateUser({email,password:pass,data:uname?{username:uname}:undefined},{emailRedirectTo:"https://legendsports.arjunkilambi.com"});
+        const {error}=await sb.auth.updateUser({email,password:pass,data:uname?{username:uname}:undefined},{emailRedirectTo:"https://legendsports.arjunkilambi.com", captchaToken});
         if(error) throw error;
         if(uname){ await sb.from("profiles").update({username:uname}).eq("id",session.user.id); }
       } else {
-        const {error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:"https://legendsports.arjunkilambi.com", data: uname?{username:uname}:undefined}});
+        const {error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:"https://legendsports.arjunkilambi.com", data: uname?{username:uname}:undefined, captchaToken}});
         if(error) throw error;
       }
       setAuthSent(true);
@@ -841,7 +884,8 @@ function App(){
     if(!pass){ setAuthErr("Enter your password."); return; }
     setAuthErr(""); setAuthBusy(true);
     try{
-      const {error}=await sb.auth.signInWithPassword({email,password:pass});
+      const captchaToken=await getCaptchaToken();
+      const {error}=await sb.auth.signInWithPassword({email,password:pass,options:{captchaToken}});
       if(error) throw error;
       await loadProfileFromSession();
     } catch(e){ setAuthErr(e.message||"Something went wrong."); }
@@ -856,7 +900,8 @@ function App(){
       const {data:exists,error:checkErr}=await sb.rpc("email_has_account",{check_email:email});
       if(checkErr) throw checkErr;
       if(!exists){ setAuthErr("No account found for that email — create one instead."); setAuthBusy(false); return; }
-      const {error}=await sb.auth.signInWithOtp({email, options:{shouldCreateUser:true, emailRedirectTo:"https://legendsports.arjunkilambi.com"}});
+      const captchaToken=await getCaptchaToken();
+      const {error}=await sb.auth.signInWithOtp({email, options:{shouldCreateUser:true, emailRedirectTo:"https://legendsports.arjunkilambi.com", captchaToken}});
       if(error) throw error;
       setAuthSent(true);
     } catch(e){ setAuthErr(e.message||"Something went wrong."); }
@@ -868,7 +913,8 @@ function App(){
     if(!email){ setAuthErr("Enter your email."); return; }
     setAuthErr(""); setAuthBusy(true);
     try{
-      const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:"https://legendsports.arjunkilambi.com"});
+      const captchaToken=await getCaptchaToken();
+      const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:"https://legendsports.arjunkilambi.com", captchaToken});
       if(error) throw error;
       setAuthSent(true);
     } catch(e){ setAuthErr(e.message||"Something went wrong."); }
