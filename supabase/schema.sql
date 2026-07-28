@@ -5,6 +5,7 @@
 drop trigger if exists on_auth_user_created on auth.users;
 drop function if exists public.handle_new_user();
 drop table if exists public.feedback cascade;
+drop table if exists public.clip_comments cascade;
 drop table if exists public.feed_posts cascade;
 drop table if exists public.answers cascade;
 drop table if exists public.questions cascade;
@@ -139,6 +140,19 @@ alter table public.feed_posts enable row level security;
 create policy "Feed viewable by everyone" on public.feed_posts for select using (true);
 create policy "Users can insert own feed posts" on public.feed_posts for insert with check (auth.uid() = user_id);
 create policy "Users can delete own feed posts" on public.feed_posts for delete using (auth.uid() = user_id);
+
+-- comments on feed clips (public)
+create table public.clip_comments (
+  id uuid primary key default gen_random_uuid(),
+  clip_id uuid references public.feed_posts(id) on delete cascade not null,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  body text not null,
+  created_at timestamptz default now()
+);
+alter table public.clip_comments enable row level security;
+create policy "Clip comments viewable by everyone" on public.clip_comments for select using (true);
+create policy "Users can insert own clip comments" on public.clip_comments for insert with check (auth.uid() = user_id);
+create policy "Users can delete own clip comments" on public.clip_comments for delete using (auth.uid() = user_id);
 
 -- feedback (private — only you and, later, an admin would see it)
 create table public.feedback (
