@@ -1546,7 +1546,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                     const comments=clipComments[p.id]||[];
                     const isLong=p.format==="Long-form";
                     return (
-                      <div key={p.id} style={{height:"100vh",scrollSnapAlign:"start",position:"relative",display:"flex",alignItems:"center",justifyContent:"center",background:"#000"}}>
+                      <div key={p.id} style={{height:"100%",scrollSnapAlign:"start",position:"relative",display:"flex",alignItems:"center",justifyContent:"center",background:"#000"}}>
                         {yt ? (
                           isLong ? (
                             <iframe src={`https://www.youtube-nocookie.com/embed/${yt}?autoplay=${i===shortsIndex?1:0}&mute=1&loop=1&playlist=${yt}&playsinline=1`} allow="autoplay; encrypted-media" allowFullScreen style={{width:"100%",maxWidth:960,aspectRatio:"16/9",border:"none",display:"block",margin:"0 auto"}}/>
