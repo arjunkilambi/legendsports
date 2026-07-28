@@ -853,18 +853,20 @@ function App(){
     const list=clipComments[clipId]||[];
     return (
       <div style={{marginTop:12,borderTop:`1px solid ${C.line}`,paddingTop:12}}>
-        {list.length===0 && <div style={{color:C.muted,fontSize:13,marginBottom:8}}>No comments yet.</div>}
-        {list.map(c=>(
-          <div key={c.id} style={{marginBottom:8}}>
-            <div style={{fontSize:13.5,lineHeight:1.5}}>{c.body}</div>
-            <div style={{color:C.muted,fontSize:11.5,marginTop:2}}>{c.author} · {fmtDate(c.date)}{c.author===profile && (<> · <span style={{cursor:"pointer",textDecoration:"underline"}} onClick={()=>deleteClipComment(c.id)}>delete</span></>)}</div>
-          </div>
-        ))}
-        <div style={{display:"flex",gap:8,marginTop:8}}>
-          <input value={clipCommentDrafts[clipId]||""} onChange={e=>setClipCommentDrafts(d=>({...d,[clipId]:e.target.value}))} placeholder="Add a comment…" style={{...inputStyle,flex:1}} onKeyDown={e=>e.key==="Enter"&&postClipComment(clipId)}/>
+        <div style={{display:"flex",gap:8}}>
+          <input value={clipCommentDrafts[clipId]||""} onChange={e=>setClipCommentDrafts(d=>({...d,[clipId]:e.target.value}))} placeholder="Add a comment…" style={{...inputStyle,flex:1}} onKeyDown={e=>e.key==="Enter"&&postClipComment(clipId)} onFocus={e=>{const el=e.target;setTimeout(()=>el.scrollIntoView({block:"center",behavior:"smooth"}),300);}}/>
           <button className="fr-btn" onClick={()=>postClipComment(clipId)} style={{...btnSolid,padding:"10px 16px"}}>Post</button>
         </div>
         {clipCommentErr && <div style={{color:C.you,fontSize:12,marginTop:6}}>{clipCommentErr}</div>}
+        <div style={{marginTop:12}}>
+          {list.length===0 && <div style={{color:C.muted,fontSize:13}}>No comments yet.</div>}
+          {list.map(c=>(
+            <div key={c.id} style={{marginBottom:8}}>
+              <div style={{fontSize:13.5,lineHeight:1.5}}>{c.body}</div>
+              <div style={{color:C.muted,fontSize:11.5,marginTop:2}}>{c.author} · {fmtDate(c.date)}{c.author===profile && (<> · <span style={{cursor:"pointer",textDecoration:"underline"}} onClick={()=>deleteClipComment(c.id)}>delete</span></>)}</div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -1565,7 +1567,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                         </div>
                         <button onClick={()=>setOpenClip(openClip===p.id?null:p.id)} style={{position:"absolute",right:14,bottom:180,background:"rgba(255,255,255,0.15)",border:"none",borderRadius:"50%",width:48,height:48,color:"#fff",fontSize:20,cursor:"pointer",zIndex:20}}>💬<div style={{fontSize:11,marginTop:-2}}>{comments.length}</div></button>
                         {openClip===p.id && (
-                          <div style={{position:"absolute",left:0,right:0,bottom:0,maxHeight:"55%",background:"rgba(10,10,10,0.95)",borderTopLeftRadius:18,borderTopRightRadius:18,padding:16,overflowY:"auto",boxSizing:"border-box"}}>
+                          <div style={{position:"absolute",left:0,right:0,bottom:0,maxHeight:"40%",background:"rgba(10,10,10,0.95)",borderTopLeftRadius:18,borderTopRightRadius:18,padding:16,overflowY:"auto",boxSizing:"border-box"}}>
                             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
                               <div style={{color:C.chalk,fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:14}}>Comments</div>
                               <button className="fr-btn" onClick={()=>setOpenClip(null)} style={{background:"transparent",border:"none",color:C.muted,fontSize:20,cursor:"pointer",lineHeight:1}}>×</button>
