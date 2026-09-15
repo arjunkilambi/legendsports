@@ -4,6 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>LegendSports — pose analysis</title>
+<!-- Google Analytics (GA4) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-66F403PXDN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-66F403PXDN');
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
   html,body{margin:0;padding:0;background:#10130F;}
@@ -17,10 +25,13 @@
   button:focus-visible,label:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #FF6A3D;outline-offset:2px;}
   @media print{ body *{visibility:hidden!important;} #recruit-card,#recruit-card *{visibility:visible!important;} #recruit-card{position:absolute;left:0;top:0;width:100%;border:none!important;} .no-print{display:none!important;} }
   .fr-hamburger{display:none;}
+  .fr-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  @media (max-width:980px){ .fr-grid3{grid-template-columns:repeat(2,1fr);} }
   @media (max-width:760px){
     .fr-header{padding:16px 0!important;}
     .fr-header-nav{display:none!important;}
     .fr-hamburger{display:flex!important;}
+    .fr-grid3{grid-template-columns:1fr;}
   }
 </style>
 </head>
@@ -115,6 +126,22 @@ const SPORTS = {
   Baseball: { legends:["Shohei Ohtani","Babe Ruth"], moves:["Batting swing","Pitching delivery"] },
 };
 const LEVELS = ["Just starting","Recreational","Competitive / club","Elite amateur"];
+
+const DEMO_SHORTS=[
+  {id:"demo-s1",author:"LegendSports Picks",title:"Buzzer-beater from the wing",desc:"Set, rise, fire — nothing but net at the horn.",format:"Short-form",date:"2026-06-01T12:00:00Z",emoji:"🏀",bg:"linear-gradient(135deg,#FF6A3D,#141814)",isDemo:true},
+  {id:"demo-s2",author:"LegendSports Picks",title:"Full windup, called strike three",desc:"Textbook mechanics from first pitch to release.",format:"Short-form",date:"2026-06-02T12:00:00Z",emoji:"⚾",bg:"linear-gradient(135deg,#7BC47F,#101410)",isDemo:true},
+  {id:"demo-s3",author:"LegendSports Picks",title:"Bicycle kick off a corner",desc:"Perfect hip rotation through contact.",format:"Short-form",date:"2026-06-03T12:00:00Z",emoji:"⚽",bg:"linear-gradient(135deg,#4C9F70,#0f1410)",isDemo:true},
+  {id:"demo-s4",author:"LegendSports Picks",title:"Ace down the T",desc:"Full extension on the toss, clean follow-through.",format:"Short-form",date:"2026-06-04T12:00:00Z",emoji:"🎾",bg:"linear-gradient(135deg,#C5D86D,#14170f)",isDemo:true},
+  {id:"demo-s5",author:"LegendSports Picks",title:"Flip turn into the final 50",desc:"Tight streamline, no wasted motion off the wall.",format:"Short-form",date:"2026-06-05T12:00:00Z",emoji:"🏊",bg:"linear-gradient(135deg,#3DA8FF,#0f1620)",isDemo:true},
+  {id:"demo-s6",author:"LegendSports Picks",title:"Kick off the final curve",desc:"Stride opens up right on cue down the stretch.",format:"Short-form",date:"2026-06-06T12:00:00Z",emoji:"🏃",bg:"linear-gradient(135deg,#FFB23D,#1a150d)",isDemo:true},
+];
+const DEMO_HIGHLIGHTS=[
+  {id:"demo-l1",author:"LegendSports Picks",title:"Full breakdown: catch-and-shoot form",desc:"15 reps, side-by-side with a pro benchmark.",format:"Long-form",date:"2026-06-01T12:00:00Z",emoji:"🏀",bg:"linear-gradient(135deg,#FF6A3D,#141814)",isDemo:true},
+  {id:"demo-l2",author:"LegendSports Picks",title:"Complete at-bat, pitch by pitch",desc:"Stance, load, and swing across a full plate appearance.",format:"Long-form",date:"2026-06-02T12:00:00Z",emoji:"⚾",bg:"linear-gradient(135deg,#7BC47F,#101410)",isDemo:true},
+  {id:"demo-l3",author:"LegendSports Picks",title:"Full match highlights — midfield clinic",desc:"Every touch that built the winning sequence.",format:"Long-form",date:"2026-06-03T12:00:00Z",emoji:"⚽",bg:"linear-gradient(135deg,#4C9F70,#0f1410)",isDemo:true},
+];
+function hashSeed(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))|0; } return h; }
+function fypOrder(list){ return list.slice().sort((a,b)=>hashSeed(a.id)-hashSeed(b.id)); }
 
 const STORE_KEY="legendsports_v1";
 const DEV_EMAIL=""; // set this to your email to receive feedback as a pre-filled message
@@ -629,7 +656,12 @@ function App(){
   const [community,setCommunity]=useState([]); const [communityErr,setCommunityErr]=useState("");
   const [qTitle,setQTitle]=useState(""); const [qBody,setQBody]=useState(""); const [qSport,setQSport]=useState("General");
   const [answerDrafts,setAnswerDrafts]=useState({}); const [openQ,setOpenQ]=useState(null);
-  const [feed,setFeed]=useState([]); const [fTitle,setFTitle]=useState(""); const [fLink,setFLink]=useState(""); const [fDesc,setFDesc]=useState(""); const [fFormat,setFFormat]=useState("Short-form"); const [feedFilter,setFeedFilter]=useState("All");
+  const [feed,setFeed]=useState([]); const [fTitle,setFTitle]=useState(""); const [fLink,setFLink]=useState(""); const [fRefLink,setFRefLink]=useState(""); const [fDesc,setFDesc]=useState(""); const [fFormat,setFFormat]=useState("Short-form"); const [feedFilter,setFeedFilter]=useState("Long-form");
+  const [fThumbFile,setFThumbFile]=useState(null); const [fThumbPreview,setFThumbPreview]=useState("");
+  const thumbFileRef=useRef(null);
+  const [playingClip,setPlayingClip]=useState(null);
+  function onThumbFile(e){ const f=e.target.files&&e.target.files[0]; if(!f)return; if(fThumbPreview)URL.revokeObjectURL(fThumbPreview); setFThumbFile(f); setFThumbPreview(URL.createObjectURL(f)); }
+  function clearThumbFile(){ if(fThumbPreview)URL.revokeObjectURL(fThumbPreview); setFThumbFile(null); setFThumbPreview(""); if(thumbFileRef.current)thumbFileRef.current.value=""; }
   const [clipComments,setClipComments]=useState({}); const [clipCommentDrafts,setClipCommentDrafts]=useState({}); const [openClip,setOpenClip]=useState(null); const [clipCommentErr,setClipCommentErr]=useState("");
   const [viewingCreator,setViewingCreator]=useState(null);
   const [shortsIndex,setShortsIndex]=useState(0);
@@ -746,9 +778,9 @@ function App(){
     setCommunity((qs||[]).map(q=>({id:q.id,author:q.profiles?.username||"?",sport:q.sport,title:q.title,body:q.body,date:q.created_at,answers:answersByQ[q.id]||[]})));
   }
   async function refreshFeed(){
-    const {data,error}=await sb.from("feed_posts").select("id,title,link,description,format,created_at,profiles(username)").order("created_at",{ascending:false}).limit(200);
+    const {data,error}=await sb.from("feed_posts").select("id,title,link,description,format,thumbnail,ref_link,created_at,profiles(username)").order("created_at",{ascending:false}).limit(200);
     if(error)return;
-    setFeed((data||[]).map(p=>({id:p.id,author:p.profiles?.username||"?",title:p.title,link:p.link,desc:p.description,format:p.format,date:p.created_at})));
+    setFeed((data||[]).map(p=>({id:p.id,author:p.profiles?.username||"?",title:p.title,link:p.link,desc:p.description,format:p.format,thumbnail:p.thumbnail,refLink:p.ref_link,date:p.created_at})));
   }
   async function refreshClipComments(){
     const {data,error}=await sb.from("clip_comments").select("id,clip_id,body,created_at,profiles(username)").order("created_at",{ascending:true});
@@ -819,11 +851,19 @@ function App(){
       link=sb.storage.from("clips").getPublicUrl(path).data.publicUrl;
     }
     if(!link){ setFeedPostErr("Add a video link first."); return; }
-    const {error}=await sb.from("feed_posts").insert({user_id:user.id,title:t,link,description:fDesc.trim(),format:fFormat});
+    let thumbnail=null;
+    if(fThumbFile){
+      const ext=(fThumbFile.name.split(".").pop()||"jpg").toLowerCase();
+      const thumbPath=`${user.id}/thumb-${Date.now()}.${ext}`;
+      const {error:thumbErr}=await sb.storage.from("clips").upload(thumbPath,fThumbFile,{contentType:fThumbFile.type||"image/jpeg"});
+      if(thumbErr){ setFeedPostErr("Thumbnail upload failed: "+thumbErr.message); return; }
+      thumbnail=sb.storage.from("clips").getPublicUrl(thumbPath).data.publicUrl;
+    }
+    const {error}=await sb.from("feed_posts").insert({user_id:user.id,title:t,link,description:fDesc.trim(),format:fFormat,thumbnail,ref_link:fRefLink.trim()||null});
     if(error){ setFeedPostErr("Post failed: "+error.message); return; }
     markGuestUsed("reel");
     feedBlobRef.current=null;
-    setFTitle(""); setFLink(""); setFDesc(""); setRecordedUrl(""); setFeedMode("link"); await refreshFeed();
+    setFTitle(""); setFLink(""); setFRefLink(""); setFDesc(""); setRecordedUrl(""); setFeedMode("link"); clearThumbFile(); await refreshFeed();
   }
   async function deleteClip(id){
     const {error}=await sb.from("feed_posts").delete().eq("id",id);
@@ -848,6 +888,19 @@ function App(){
     return <a href={link} target="_blank" rel="noopener noreferrer" style={{color:C.you,fontSize:14}}>Watch ↗ {link}</a>;
   }
   function ytId(link){ const m=(link||"").match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{11})/); return m?m[1]:null; }
+  function refPlatform(link){
+    if(!link) return null;
+    if(/(?:youtube\.com|youtu\.be)/i.test(link)) return "YouTube";
+    if(/tiktok\.com/i.test(link)) return "TikTok";
+    if(/(?:facebook\.com|fb\.watch)/i.test(link)) return "Facebook";
+    return "Link";
+  }
+  function RefClipBadge({link,style}){
+    if(!link) return null;
+    return (
+      <a href={link} target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",alignItems:"center",gap:6,color:C.legend,fontSize:12.5,textDecoration:"none",border:`1px solid ${C.legend}`,borderRadius:20,padding:"5px 12px",...style}}>🔗 Reference · {refPlatform(link)} ↗</a>
+    );
+  }
   function goToCreator(username){ setViewingCreator(username); setOpenClip(null); setStep("creator"); }
   function renderComments(clipId){
     const list=clipComments[clipId]||[];
@@ -870,6 +923,27 @@ function App(){
       </div>
     );
   }
+  function clipMedia(p){
+    if(p.isDemo){
+      return (
+        <div style={{aspectRatio:"16/9",borderRadius:8,background:p.bg,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+          <span style={{fontSize:44}}>{p.emoji}</span>
+          <span style={{position:"absolute",top:8,left:8,background:"rgba(0,0,0,0.4)",color:"#fff",fontSize:10.5,letterSpacing:1,textTransform:"uppercase",fontFamily:DISPLAY,padding:"3px 8px",borderRadius:12}}>Demo</span>
+        </div>
+      );
+    }
+    if(p.thumbnail && playingClip!==p.id){
+      return (
+        <div onClick={()=>setPlayingClip(p.id)} style={{aspectRatio:"16/9",borderRadius:8,overflow:"hidden",position:"relative",cursor:"pointer",background:"#000"}}>
+          <img src={p.thumbnail} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+          <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.25)"}}>
+            <div style={{width:52,height:52,borderRadius:"50%",background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,color:"#fff"}}>▶</div>
+          </div>
+        </div>
+      );
+    }
+    return videoEmbed(p.link);
+  }
   function clipCard(p){
     const comments=clipComments[p.id]||[];
     return (
@@ -877,16 +951,19 @@ function App(){
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,marginBottom:10}}>
           <div>
             <div style={{fontSize:16,fontWeight:600}}>{p.title}</div>
-            <div style={{color:C.muted,fontSize:12.5,marginTop:3}}><span style={{cursor:"pointer",textDecoration:"underline"}} onClick={()=>goToCreator(p.author)}>{p.author}</span> · <span style={{color:p.format==="Short-form"?C.you:C.legend}}>{p.format}</span> · {fmtDate(p.date)}</div>
+            <div style={{color:C.muted,fontSize:12.5,marginTop:3}}>{p.isDemo ? p.author : <span style={{cursor:"pointer",textDecoration:"underline"}} onClick={()=>goToCreator(p.author)}>{p.author}</span>} · <span style={{color:p.format==="Short-form"?C.you:C.legend}}>{p.format}</span> · {fmtDate(p.date)}</div>
           </div>
           {p.author===profile && <button className="fr-btn" onClick={()=>deleteClip(p.id)} style={{background:"transparent",color:C.muted,border:`1px solid ${C.line}`,borderRadius:6,padding:"5px 10px",fontSize:12,cursor:"pointer"}}>Delete</button>}
         </div>
-        {videoEmbed(p.link)}
+        {clipMedia(p)}
         {p.desc && <p style={{margin:"12px 0 0",fontSize:14.5,lineHeight:1.55}}>{p.desc}</p>}
-        <div style={{marginTop:10}}>
-          <button className="fr-btn" onClick={()=>setOpenClip(openClip===p.id?null:p.id)} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13,padding:0}}>💬 {comments.length} {comments.length===1?"comment":"comments"}{openClip===p.id?" ▲":" ▼"}</button>
-        </div>
-        {openClip===p.id && renderComments(p.id)}
+        {p.refLink && <div style={{marginTop:10}}><RefClipBadge link={p.refLink}/></div>}
+        {!p.isDemo && (
+          <div style={{marginTop:10}}>
+            <button className="fr-btn" onClick={()=>setOpenClip(openClip===p.id?null:p.id)} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13,padding:0}}>💬 {comments.length} {comments.length===1?"comment":"comments"}{openClip===p.id?" ▲":" ▼"}</button>
+          </div>
+        )}
+        {!p.isDemo && openClip===p.id && renderComments(p.id)}
       </div>
     );
   }
@@ -1484,6 +1561,22 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                   {["Short-form","Long-form"].map(x=>(<button key={x} className="fr-chip" onClick={()=>setFFormat(x)} style={{background:fFormat===x?C.you:"transparent",color:fFormat===x?C.ink:C.chalk,border:`1px solid ${fFormat===x?C.you:C.line}`,borderRadius:20,padding:"7px 16px",fontSize:13,cursor:"pointer"}}>{x}</button>))}
                 </div>
                 <div style={{color:C.muted,fontSize:11.5,lineHeight:1.5,marginTop:-2}}>Short-form caps at 2:30, long-form at 30:00. Recordings stop automatically at the limit; for links, length follows the source platform.</div>
+                <div>
+                  <div style={{fontSize:12,letterSpacing:1,textTransform:"uppercase",color:C.muted,marginBottom:8,fontFamily:DISPLAY}}>Reference clip (optional)</div>
+                  <input value={fRefLink} onChange={e=>setFRefLink(e.target.value)} placeholder="Paste a YouTube, TikTok, or Facebook link to compare against" style={inputStyle}/>
+                  <div style={{color:C.muted,fontSize:11.5,lineHeight:1.5,marginTop:6}}>Shown as a link on your post so viewers can watch what you're referencing.</div>
+                </div>
+                <div>
+                  <div style={{fontSize:12,letterSpacing:1,textTransform:"uppercase",color:C.muted,marginBottom:8,fontFamily:DISPLAY}}>Thumbnail (optional)</div>
+                  {fThumbPreview ? (
+                    <div style={{display:"flex",alignItems:"center",gap:12}}>
+                      <img src={fThumbPreview} alt="" style={{width:120,aspectRatio:"16/9",objectFit:"cover",borderRadius:8,background:"#000"}}/>
+                      <button className="fr-btn" onClick={clearThumbFile} style={{background:"transparent",color:C.you,border:`1px solid ${C.you}`,borderRadius:6,padding:"8px 12px",fontSize:13,cursor:"pointer"}}>Remove</button>
+                    </div>
+                  ) : (
+                    <label className="fr-btn" tabIndex={0} onKeyDown={e=>(e.key==="Enter"||e.key===" ")&&thumbFileRef.current?.click()} style={{...btnGhost,padding:"9px 16px",fontSize:13,display:"inline-flex"}}>Upload thumbnail image<input ref={thumbFileRef} type="file" accept="image/*" onChange={onThumbFile} style={{display:"none"}}/></label>
+                  )}
+                </div>
                 <textarea value={fDesc} onChange={e=>setFDesc(e.target.value)} placeholder="Caption (optional)" rows={2} style={inputStyle}/>
                 {!profile && <div style={{color:C.muted,fontSize:12}}>posting as Guest{!guestUsage.reel && " · first reel is free"}</div>}
                 {feedPostErr && <div style={{color:C.you,fontSize:13}}>{feedPostErr}</div>}
@@ -1499,7 +1592,8 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
             {(()=>{
               const ql=feedQuery.trim().toLowerCase();
               const creators=ql?[...new Set(feed.map(p=>p.author))].filter(a=>a.toLowerCase().includes(ql)):[];
-              const list=feed.filter(p=>(feedFilter==="All"||p.format===feedFilter)&&(!ql||`${p.title} ${p.desc||""} ${p.author}`.toLowerCase().includes(ql)));
+              const withDemos=feedFilter==="Short-form"?feed:[...feed,...DEMO_HIGHLIGHTS];
+              const list=fypOrder(withDemos.filter(p=>(feedFilter==="All"||p.format===feedFilter)&&(!ql||`${p.title} ${p.desc||""} ${p.author}`.toLowerCase().includes(ql))));
               return (<>
                 {creators.length>0 && (
                   <div style={{marginBottom:16}}>
@@ -1512,7 +1606,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                 {list.length===0 ? (
                   <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:30,textAlign:"center",color:C.muted}}>No clips yet — post the first one.</div>
                 ) : (
-                  <div style={{display:"flex",flexDirection:"column",gap:16}}>{list.map(p=>clipCard(p))}</div>
+                  <div className="fr-grid3">{list.map(p=>clipCard(p))}</div>
                 )}
               </>);
             })()}
@@ -1529,13 +1623,13 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
             {vids.length===0 ? (
               <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:30,textAlign:"center",color:C.muted}}>No videos from this creator yet.</div>
             ) : (
-              <div style={{display:"flex",flexDirection:"column",gap:16}}>{vids.map(p=>clipCard(p))}</div>
+              <div className="fr-grid3">{vids.map(p=>clipCard(p))}</div>
             )}
           </section>
         ); })()}
 
         {step==="shorts" && (()=>{
-          const shorts=feed;
+          const shorts=[...DEMO_SHORTS,...fypOrder(feed)];
           return (
             <div style={{position:"fixed",inset:0,background:"#000",zIndex:500}}>
               <button className="fr-btn" onClick={()=>setStep("feed")} style={{position:"absolute",top:16,left:16,zIndex:10,background:"rgba(0,0,0,0.55)",color:C.chalk,border:`1px solid ${C.line}`,borderRadius:20,padding:"8px 16px",cursor:"pointer",fontSize:13}}>← Feed</button>
@@ -1549,7 +1643,12 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                     const isLong=p.format==="Long-form";
                     return (
                       <div key={p.id} style={{height:"100%",scrollSnapAlign:"start",position:"relative",display:"flex",alignItems:"center",justifyContent:"center",background:"#000"}}>
-                        {yt ? (
+                        {p.isDemo ? (
+                          <div style={{width:"100%",height:"100%",background:p.bg,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+                            <span style={{fontSize:96}}>{p.emoji}</span>
+                            <span style={{position:"absolute",top:16,right:16,background:"rgba(0,0,0,0.4)",color:"#fff",fontSize:11,letterSpacing:1,textTransform:"uppercase",fontFamily:DISPLAY,padding:"4px 10px",borderRadius:14}}>Demo</span>
+                          </div>
+                        ) : yt ? (
                           isLong ? (
                             <iframe src={`https://www.youtube-nocookie.com/embed/${yt}?autoplay=${i===shortsIndex?1:0}&mute=1&loop=1&playlist=${yt}&playsinline=1`} allow="autoplay; encrypted-media" allowFullScreen style={{width:"100%",maxWidth:960,aspectRatio:"16/9",border:"none",display:"block",margin:"0 auto"}}/>
                           ) : (
@@ -1561,12 +1660,14 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                           <video ref={el=>shortsVideoRefs.current[i]=el} src={p.link} muted loop playsInline style={{width:"100%",height:"100%",objectFit:"contain",background:"#000"}} onClick={e=>{ e.currentTarget.muted=!e.currentTarget.muted; }}/>
                         )}
                         <div style={{position:"absolute",left:16,right:76,bottom:90,color:"#fff",pointerEvents:"none"}}>
-                          <div style={{fontWeight:600,fontSize:15,cursor:"pointer",pointerEvents:"auto",display:"inline-block"}} onClick={()=>goToCreator(p.author)}>@{p.author}</div>
+                          <div style={{fontWeight:600,fontSize:15,cursor:p.isDemo?"default":"pointer",pointerEvents:p.isDemo?"none":"auto",display:"inline-block"}} onClick={()=>!p.isDemo&&goToCreator(p.author)}>@{p.author}</div>
                           <div style={{fontSize:14,marginTop:4,lineHeight:1.4}}>{p.title}</div>
                           {p.desc && <div style={{fontSize:13,marginTop:2,opacity:0.85}}>{p.desc}</div>}
+                          {p.refLink && <div style={{marginTop:8,pointerEvents:"auto"}}><RefClipBadge link={p.refLink} style={{background:"rgba(0,0,0,0.4)"}}/></div>}
                         </div>
-                        <button onClick={()=>setOpenClip(openClip===p.id?null:p.id)} style={{position:"absolute",right:14,bottom:180,background:"rgba(255,255,255,0.15)",border:"none",borderRadius:"50%",width:48,height:48,color:"#fff",fontSize:20,cursor:"pointer",zIndex:20}}>💬<div style={{fontSize:11,marginTop:-2}}>{comments.length}</div></button>
-                        {openClip===p.id && (
+                        {!p.isDemo && <button onClick={()=>setOpenClip(openClip===p.id?null:p.id)} style={{position:"absolute",right:14,bottom:180,background:"rgba(255,255,255,0.15)",border:"none",borderRadius:"50%",width:48,height:48,color:"#fff",fontSize:20,cursor:"pointer",zIndex:20}}>💬<div style={{fontSize:11,marginTop:-2}}>{comments.length}</div></button>}
+                        {!p.isDemo && p.author===profile && <button onClick={()=>deleteClip(p.id)} title="Delete this clip" style={{position:"absolute",right:14,bottom:242,background:"rgba(255,255,255,0.15)",border:"none",borderRadius:"50%",width:48,height:48,color:"#fff",fontSize:18,cursor:"pointer",zIndex:20}}>🗑</button>}
+                        {!p.isDemo && openClip===p.id && (
                           <div style={{position:"absolute",left:0,right:0,bottom:0,maxHeight:"40%",background:"rgba(10,10,10,0.95)",borderTopLeftRadius:18,borderTopRightRadius:18,padding:16,overflowY:"auto",boxSizing:"border-box"}}>
                             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
                               <div style={{color:C.chalk,fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:14}}>Comments</div>

@@ -134,6 +134,8 @@ create table public.feed_posts (
   link text not null,
   description text,
   format text,
+  thumbnail text,
+  ref_link text,
   created_at timestamptz default now()
 );
 alter table public.feed_posts enable row level security;
