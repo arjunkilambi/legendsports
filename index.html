@@ -3,7 +3,20 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>LegendSports — pose analysis</title>
+<title>LegendSports: video technique analysis for athletes</title>
+<meta name="description" content="Upload a clip of your jump shot, serve, swing, or sprint start. LegendSports tracks your joints in the browser, measures knee load, arm range, balance, and follow-through, and compares them with a legend's form." />
+<link rel="canonical" href="https://legendsports.arjunkilambi.com/" />
+<meta name="theme-color" content="#10130F" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="LegendSports" />
+<meta property="og:title" content="LegendSports: video technique analysis for athletes" />
+<meta property="og:description" content="Measured joint angles from your own video, compared with a legend's form, plus a three-week drill plan." />
+<meta property="og:url" content="https://legendsports.arjunkilambi.com/" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23FF6A3D'/%3E%3Ctext x='16' y='22' font-family='Arial' font-weight='700' font-size='15' text-anchor='middle' fill='%2310130F'%3ELS%3C/text%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" />
 <!-- Google Analytics (GA4) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-66F403PXDN"></script>
 <script>
@@ -13,36 +26,55 @@
   gtag('config', 'G-66F403PXDN');
 </script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
   html,body{margin:0;padding:0;background:#10130F;}
   #root{min-height:100vh;}
   @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important;}}
-  .fr-fade{animation:frfade .6s cubic-bezier(.16,1,.3,1) both;}
-  @keyframes frfade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
   @keyframes frspin{to{transform:rotate(360deg)}}
   @keyframes frblink{50%{opacity:0.25}}
   select,textarea,input{font-family:'Inter',Arial,sans-serif;}
   button:focus-visible,label:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #FF6A3D;outline-offset:2px;}
   @media print{ body *{visibility:hidden!important;} #recruit-card,#recruit-card *{visibility:visible!important;} #recruit-card{position:absolute;left:0;top:0;width:100%;border:none!important;} .no-print{display:none!important;} }
+  body{-webkit-font-smoothing:antialiased;}
+  .fr-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background-color .15s ease,border-color .15s ease,box-shadow .15s ease;}
+  .fr-btn:hover:not(:disabled),.fr-chip:hover{box-shadow:inset 0 0 0 999px rgba(243,240,228,0.07);}
+  .fr-btn:disabled{cursor:not-allowed;}
+  .fr-chip{transition:background-color .15s ease,border-color .15s ease;}
+  .fr-nav{background:none;border:none;border-bottom:2px solid transparent;color:#B7BEB4;font:500 14px/1 'Inter','Helvetica Neue',Arial,sans-serif;padding:10px 0 8px;cursor:pointer;text-decoration:none;white-space:nowrap;}
+  .fr-nav:hover{color:#F3F0E4;}
+  .fr-nav.is-active{color:#F3F0E4;border-bottom-color:#FF6A3D;}
+  .fr-link{color:#B7BEB4;text-decoration:none;}
+  .fr-link:hover{color:#F3F0E4;text-decoration:underline;text-underline-offset:3px;}
+  .fr-list{margin:0;padding:0;list-style:none;}
+  .fr-list li{position:relative;padding-left:16px;margin-bottom:8px;line-height:1.5;}
+  .fr-list li::before{content:"";position:absolute;left:0;top:.62em;width:6px;height:2px;background:#FF6A3D;}
   .fr-hamburger{display:none;}
-  .fr-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .fr-grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start;}
   @media (max-width:980px){ .fr-grid3{grid-template-columns:repeat(2,1fr);} }
-  @media (max-width:760px){
-    .fr-header{padding:16px 0!important;}
+  @media (max-width:1000px){
     .fr-header-nav{display:none!important;}
     .fr-hamburger{display:flex!important;}
+  }
+  @media (max-width:760px){
+    .fr-header{padding:14px 0!important;}
     .fr-grid3{grid-template-columns:1fr;}
+    .fr-split{grid-template-columns:1fr!important;}
   }
 </style>
 </head>
 <body>
-<div id="root"><div style="color:#9AA39A;font-family:Inter,Arial,sans-serif;padding:40px;text-align:center;">Loading LegendSports…<br><span style="font-size:13px">(if this stays more than a few seconds, check the note that appears below)</span></div></div>
-<div id="fr-err" style="display:none;color:#FF6A3D;background:#191E18;font-family:monospace;font-size:13px;white-space:pre-wrap;padding:20px;margin:20px;border:1px solid #FF6A3D;border-radius:8px;"></div>
+<div id="root"><div style="color:#9AA39A;font-family:Inter,Arial,sans-serif;padding:80px 20px;text-align:center;font-size:15px;">Loading LegendSports…</div></div>
+<div id="fr-err" role="alert" style="display:none;max-width:460px;margin:60px auto;padding:24px;background:#191E18;border:1px solid rgba(243,240,228,0.12);border-radius:10px;color:#F3F0E4;font-family:Inter,Arial,sans-serif;text-align:center;">
+  <div style="font-size:18px;font-weight:600;margin-bottom:8px;">LegendSports didn't load</div>
+  <p style="margin:0 0 18px;color:#9AA39A;font-size:15px;line-height:1.5;">Check your internet connection and reload the page. The first visit downloads the pose model, so it needs a connection.</p>
+  <button onclick="location.reload()" style="background:#FF6A3D;color:#10130F;border:none;border-radius:6px;padding:11px 20px;font:600 15px Inter,Arial,sans-serif;cursor:pointer;">Reload</button>
+  <details style="margin-top:18px;text-align:left;color:#9AA39A;font-size:12px;"><summary style="cursor:pointer;">Technical details</summary><pre id="fr-err-detail" style="white-space:pre-wrap;margin:8px 0 0;font-size:12px;"></pre></details>
+</div>
 
 <script>
-  function frShowErr(m){var b=document.getElementById('fr-err');if(b){b.style.display='block';b.textContent='Couldn\'t start:\n\n'+m+'\n\nTip: run from http://localhost in Chrome, and be online the first time (the pose model downloads once).';}}
-  window.addEventListener('error',function(e){frShowErr((e.message||'script error')+(e.filename?('\n'+e.filename+':'+e.lineno):''));});
-  window.addEventListener('unhandledrejection',function(e){frShowErr('Promise error: '+(e.reason&&e.reason.message?e.reason.message:e.reason));});
+  // Startup failures only. Once the app has rendered, runtime errors are handled in the UI.
+  function frShowErr(m){ if(window.__lsStarted)return; var b=document.getElementById('fr-err'),d=document.getElementById('fr-err-detail'),r=document.getElementById('root'); if(!b)return; b.style.display='block'; if(r)r.style.display='none'; if(d)d.textContent=(d.textContent?d.textContent+'\n':'')+m; }
+  window.addEventListener('error',function(e){frShowErr((e.message||'Script error')+(e.filename?(' ('+e.filename+':'+e.lineno+')'):''));});
+  window.addEventListener('unhandledrejection',function(e){frShowErr('Unhandled promise: '+(e.reason&&e.reason.message?e.reason.message:e.reason));});
 </script>
 
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -53,10 +85,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" crossorigin></script>
 
 <script>
-  if(!window.React||!window.ReactDOM)frShowErr('React did not load — connect to the internet and reload.');
-  if(!window.Babel)frShowErr('Babel did not load — connect to the internet and reload, or use Chrome.');
-  if(!window.tf||!window.poseDetection)frShowErr('The pose-detection library did not load — connect to the internet and reload.');
-  if(!window.supabase)frShowErr('The Supabase library did not load — connect to the internet and reload.');
+  if(!window.React||!window.ReactDOM)frShowErr('react / react-dom failed to load');
+  if(!window.Babel)frShowErr('@babel/standalone failed to load');
+  if(!window.tf||!window.poseDetection)frShowErr('tfjs / pose-detection failed to load');
+  if(!window.supabase)frShowErr('supabase-js failed to load');
 </script>
 
 <script type="text/babel" data-presets="react">
@@ -67,7 +99,7 @@ const sb = window.supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94YWl5aWlqZmJsZ2l0dGppbXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMjEyNTEsImV4cCI6MjA5ODU5NzI1MX0.zsX3K02zMPzxYvmwTiixGDzx4nGDuuw6hpmsK8-exQ0"
 );
 
-// Cloudflare Turnstile — Supabase's captcha protection requires a fresh token
+// Cloudflare Turnstile, Supabase's captcha protection requires a fresh token
 // on signup/signin/anonymous-signin. One invisible widget, re-executed per call.
 const TURNSTILE_SITE_KEY = "0x4AAAAAAD_MiPmjPMjMaYeF";
 let turnstileLoadPromise = null;
@@ -128,17 +160,17 @@ const SPORTS = {
 const LEVELS = ["Just starting","Recreational","Competitive / club","Elite amateur"];
 
 const DEMO_SHORTS=[
-  {id:"demo-s1",author:"LegendSports Picks",title:"Buzzer-beater from the wing",desc:"Set, rise, fire — nothing but net at the horn.",format:"Short-form",date:"2026-06-01T12:00:00Z",emoji:"🏀",bg:"linear-gradient(135deg,#FF6A3D,#141814)",isDemo:true},
-  {id:"demo-s2",author:"LegendSports Picks",title:"Full windup, called strike three",desc:"Textbook mechanics from first pitch to release.",format:"Short-form",date:"2026-06-02T12:00:00Z",emoji:"⚾",bg:"linear-gradient(135deg,#7BC47F,#101410)",isDemo:true},
-  {id:"demo-s3",author:"LegendSports Picks",title:"Bicycle kick off a corner",desc:"Perfect hip rotation through contact.",format:"Short-form",date:"2026-06-03T12:00:00Z",emoji:"⚽",bg:"linear-gradient(135deg,#4C9F70,#0f1410)",isDemo:true},
-  {id:"demo-s4",author:"LegendSports Picks",title:"Ace down the T",desc:"Full extension on the toss, clean follow-through.",format:"Short-form",date:"2026-06-04T12:00:00Z",emoji:"🎾",bg:"linear-gradient(135deg,#C5D86D,#14170f)",isDemo:true},
-  {id:"demo-s5",author:"LegendSports Picks",title:"Flip turn into the final 50",desc:"Tight streamline, no wasted motion off the wall.",format:"Short-form",date:"2026-06-05T12:00:00Z",emoji:"🏊",bg:"linear-gradient(135deg,#3DA8FF,#0f1620)",isDemo:true},
-  {id:"demo-s6",author:"LegendSports Picks",title:"Kick off the final curve",desc:"Stride opens up right on cue down the stretch.",format:"Short-form",date:"2026-06-06T12:00:00Z",emoji:"🏃",bg:"linear-gradient(135deg,#FFB23D,#1a150d)",isDemo:true},
+  {id:"demo-s1",author:"LegendSports Picks",title:"Buzzer-beater from the wing",desc:"Set, rise, fire, nothing but net at the horn.",format:"Short-form",date:"2026-06-01T12:00:00Z",sport:"basketball",isDemo:true},
+  {id:"demo-s2",author:"LegendSports Picks",title:"Full windup, called strike three",desc:"Textbook mechanics from first pitch to release.",format:"Short-form",date:"2026-06-02T12:00:00Z",sport:"baseball",isDemo:true},
+  {id:"demo-s3",author:"LegendSports Picks",title:"Bicycle kick off a corner",desc:"Perfect hip rotation through contact.",format:"Short-form",date:"2026-06-03T12:00:00Z",sport:"soccer",isDemo:true},
+  {id:"demo-s4",author:"LegendSports Picks",title:"Ace down the T",desc:"Full extension on the toss, clean follow-through.",format:"Short-form",date:"2026-06-04T12:00:00Z",sport:"tennis",isDemo:true},
+  {id:"demo-s5",author:"LegendSports Picks",title:"Flip turn into the final 50",desc:"Tight streamline, no wasted motion off the wall.",format:"Short-form",date:"2026-06-05T12:00:00Z",sport:"swim",isDemo:true},
+  {id:"demo-s6",author:"LegendSports Picks",title:"Kick off the final curve",desc:"Stride opens up right on cue down the stretch.",format:"Short-form",date:"2026-06-06T12:00:00Z",sport:"run",isDemo:true},
 ];
 const DEMO_HIGHLIGHTS=[
-  {id:"demo-l1",author:"LegendSports Picks",title:"Full breakdown: catch-and-shoot form",desc:"15 reps, side-by-side with a pro benchmark.",format:"Long-form",date:"2026-06-01T12:00:00Z",emoji:"🏀",bg:"linear-gradient(135deg,#FF6A3D,#141814)",isDemo:true},
-  {id:"demo-l2",author:"LegendSports Picks",title:"Complete at-bat, pitch by pitch",desc:"Stance, load, and swing across a full plate appearance.",format:"Long-form",date:"2026-06-02T12:00:00Z",emoji:"⚾",bg:"linear-gradient(135deg,#7BC47F,#101410)",isDemo:true},
-  {id:"demo-l3",author:"LegendSports Picks",title:"Full match highlights — midfield clinic",desc:"Every touch that built the winning sequence.",format:"Long-form",date:"2026-06-03T12:00:00Z",emoji:"⚽",bg:"linear-gradient(135deg,#4C9F70,#0f1410)",isDemo:true},
+  {id:"demo-l1",author:"LegendSports Picks",title:"Full breakdown: catch-and-shoot form",desc:"15 reps, side-by-side with a pro benchmark.",format:"Long-form",date:"2026-06-01T12:00:00Z",sport:"basketball",isDemo:true},
+  {id:"demo-l2",author:"LegendSports Picks",title:"Complete at-bat, pitch by pitch",desc:"Stance, load, and swing across a full plate appearance.",format:"Long-form",date:"2026-06-02T12:00:00Z",sport:"baseball",isDemo:true},
+  {id:"demo-l3",author:"LegendSports Picks",title:"Full match highlights, midfield clinic",desc:"Every touch that built the winning sequence.",format:"Long-form",date:"2026-06-03T12:00:00Z",sport:"soccer",isDemo:true},
 ];
 function hashSeed(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))|0; } return h; }
 function fypOrder(list){ return list.slice().sort((a,b)=>hashSeed(a.id)-hashSeed(b.id)); }
@@ -153,6 +185,7 @@ function loadTeams(){ try{ return JSON.parse(localStorage.getItem(TEAMS_KEY))||[
 function saveTeams(a){ try{ localStorage.setItem(TEAMS_KEY,JSON.stringify(a)); return true; }catch(e){ return false; } }
 function loadStore(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{profiles:{},current:null}; }catch(e){ return {profiles:{},current:null}; } }
 function saveStore(s){ try{ localStorage.setItem(STORE_KEY,JSON.stringify(s)); return true; }catch(e){ return false; } }
+function fmtDay(iso){ try{ return new Date(iso).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}); }catch(e){ return iso; } }
 function fmtDate(iso){ try{ return new Date(iso).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})+" · "+new Date(iso).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}); }catch(e){ return iso; } }
 const GRADE_RANK={A:12,"A-":11,"B+":10,B:9,"B-":8,"C+":7,C:6,"C-":5,"D+":4,D:3,"—":0};
 function rankGrade(g){ return GRADE_RANK[g]||0; }
@@ -183,7 +216,7 @@ const PROFILES = {
   "Crossover dribble":{base:0.4,power:0.2,mech:0.25,finish:0.15,load:[120,160]},
   // load range corrected from two independent sources: kicking-leg knee cocks
   // back to ~77° (interior angle) during backswing, then extends to ~156-173°
-  // at ball contact — much deeper load than a jump/shot crouch. The previous
+  // at ball contact, much deeper load than a jump/shot crouch. The previous
   // [110-150] range would have scored realistic kicking mechanics as shallow.
   // (PMC12287098 backswing depth; PMC3761486 contact-angle cross-check)
   "Free kick":{base:0.25,power:0.35,mech:0.25,finish:0.15,load:[65,92]},
@@ -196,7 +229,7 @@ const PROFILES = {
   "Jab":{base:0.3,power:0.25,mech:0.3,finish:0.15,load:[130,165]},
   // finishRange sourced from a published comparison of elite vs. junior boxers'
   // punch kinematics: elbow angle at impact averaged 112.9°±9.2° (elite) and
-  // 120.0°±12.4° (junior) for the cross — well short of a fully extended arm,
+  // 120.0°±12.4° (junior) for the cross, well short of a fully extended arm,
   // so "more extension = better" is the wrong shape of scoring for this move.
   "Cross":{base:0.3,power:0.3,mech:0.25,finish:0.15,load:[125,160],finishRange:[95,130,20]},
   "Footwork":{base:0.5,power:0.2,mech:0.2,finish:0.1,load:[130,170]},
@@ -204,7 +237,7 @@ const PROFILES = {
   "Iron shot":{base:0.3,power:0.25,mech:0.3,finish:0.15,load:[125,160]},
   "Putt":{base:0.5,power:0.1,mech:0.3,finish:0.1,load:[140,170],sym:true,controlledMech:true},
   // load range independently confirmed against real sprint-start research: front
-  // knee ~90-99°, rear knee ~90-136° in the "set" position (PMC6684547) — the
+  // knee ~90-99°, rear knee ~90-136° in the "set" position (PMC6684547), the
   // existing hand-tuned range already matched, no change needed.
   "Block start":{base:0.25,power:0.4,mech:0.2,finish:0.15,load:[90,135]},
   "Acceleration":{base:0.3,power:0.35,mech:0.2,finish:0.15,load:[100,145]},
@@ -225,7 +258,7 @@ const EDGES = [["left_shoulder","right_shoulder"],["left_shoulder","left_elbow"]
 
 // ---------- geometry / stats ----------
 function angleDeg(a,b,c){ if(!a||!b||!c)return null; const ab={x:a.x-b.x,y:a.y-b.y},cb={x:c.x-b.x,y:c.y-b.y}; const d=ab.x*cb.x+ab.y*cb.y; const m=Math.hypot(ab.x,ab.y)*Math.hypot(cb.x,cb.y); if(!m)return null; let v=d/m; v=Math.max(-1,Math.min(1,v)); return Math.acos(v)*180/Math.PI; }
-// same joint-angle math in 3D (x,y,z meters) — unlike the 2D version, this is
+// same joint-angle math in 3D (x,y,z meters), unlike the 2D version, this is
 // viewpoint-invariant, so it isn't skewed by the camera not being exactly side-on.
 function angleDeg3D(a,b,c){ if(!a||!b||!c)return null; const ab={x:a.x-b.x,y:a.y-b.y,z:a.z-b.z},cb={x:c.x-b.x,y:c.y-b.y,z:c.z-b.z}; const d=ab.x*cb.x+ab.y*cb.y+ab.z*cb.z; const m=Math.hypot(ab.x,ab.y,ab.z)*Math.hypot(cb.x,cb.y,cb.z); if(!m)return null; let v=d/m; v=Math.max(-1,Math.min(1,v)); return Math.acos(v)*180/Math.PI; }
 function dist(a,b){ if(!a||!b)return null; return Math.hypot(a.x-b.x,a.y-b.y); }
@@ -247,7 +280,7 @@ function avgScores(list){ const a=list.filter(v=>v!=null); return a.length?Math.
 
 // ---------- pose model ----------
 // BlazePose gives real x/y/z (keypoints3D) alongside the same 2D keypoints MoveNet
-// gives, using identical joint names (left_shoulder, right_knee, etc.) — so it's a
+// gives, using identical joint names (left_shoulder, right_knee, etc.), so it's a
 // drop-in upgrade. If it fails to load for any reason, this falls all the way back
 // to the original 2D-only MoveNet path, so behavior never regresses.
 let _detector=null;
@@ -261,7 +294,7 @@ async function getDetector(){
   return _detector;
 }
 // iOS Safari has long-standing bugs where the 'seeked' event sometimes never
-// fires for a given seek — without a fallback, that hangs the whole analysis
+// fires for a given seek, without a fallback, that hangs the whole analysis
 // forever on one frame. Proceed with whatever frame is current if it's slow.
 function seekTo(v,t){ return new Promise(res=>{ let done=false; const fin=()=>{ if(done)return; done=true; v.removeEventListener("seeked",fin); res(); }; v.addEventListener("seeked",fin); v.currentTime=t; setTimeout(fin,1200); }); }
 function paintReady(v){ return new Promise(res=>{ let done=false; const fin=()=>{ if(!done){done=true;res();} }; if(v.requestVideoFrameCallback){ try{ v.requestVideoFrameCallback(()=>fin()); }catch(e){} } requestAnimationFrame(()=>requestAnimationFrame(fin)); setTimeout(fin,140); }); }
@@ -334,10 +367,10 @@ const CATINFO={
   finish:{label:"Follow-through", why:"A complete, balanced finish keeps the motion accurate and consistent."},
 };
 const PROGRESS={
-  base:["Week 1 — 3×30s single-leg balance holds + 20 slow reps staying centered.","Week 2 — Run the move at half speed keeping your center quiet.","Week 3 — Full intensity with the base still rock-steady."],
-  power:["Week 1 — 3×8 pause squats, holding your deepest load 2 seconds.","Week 2 — 3×8 box jumps, then load→drive reps for ground force.","Week 3 — Load and explode in one motion at full speed."],
-  mech:["Week 1 — Slow full-range reps, exaggerating the complete path.","Week 2 — Add a light resistance band through the full range.","Week 3 — Full-speed reps keeping that same complete range."],
-  finish:["Week 1 — Hold your finish for 2 seconds on every rep.","Week 2 — Keep that finish while speeding the motion up.","Week 3 — Same complete, symmetric finish every rep, full speed."],
+  base:["Week 1: 3×30s single-leg balance holds + 20 slow reps staying centered.","Week 2: Run the move at half speed keeping your center quiet.","Week 3: Full intensity with the base still rock-steady."],
+  power:["Week 1: 3×8 pause squats, holding your deepest load 2 seconds.","Week 2: 3×8 box jumps, then load→drive reps for ground force.","Week 3: Load and explode in one motion at full speed."],
+  mech:["Week 1: Slow full-range reps, exaggerating the complete path.","Week 2: Add a light resistance band through the full range.","Week 3: Full-speed reps keeping that same complete range."],
+  finish:["Week 1: Hold your finish for 2 seconds on every rep.","Week 2: Keep that finish while speeding the motion up.","Week 3: Same complete, symmetric finish every rep, full speed."],
 };
 const GOALS={ base:"Stay centered on 8 of 10 reps with no visible sway.", power:"Hit full load depth and drive on every rep.", mech:"Reach full range on every rep without rushing.", finish:"Hold a complete, balanced finish on every rep." };
 function buildPlan(cats){
@@ -377,7 +410,7 @@ function torsoLeanDeg(kp,kp3D){
 
 // Pulls every measurement out of one tracked clip (knee/elbow angles, torso lean,
 // stance width, timing) so the exact same math can run on the athlete's clip and,
-// optionally, a reference clip — enabling a real measured comparison instead of
+// optionally, a reference clip, enabling a real measured comparison instead of
 // only the idealized legend benchmark.
 function measureClip(data){
   const poses=data.poses;
@@ -440,9 +473,9 @@ function analyzeMotion(data, sport, move, legend, level, refData, refMeasurement
   // Hard stop: frames came through blank, or no body found at all
   if(m.lowTrack){
     return {
-      observed: `⚠ The video frames came through ${m.tracked===0?"without a detectable body":"mostly black"} (${data.blankCount||0}/${data.N||24} blank). Nothing was measured — this is NOT a real score.`,
+      observed: `The video frames came through ${m.tracked===0?"without a detectable body":"mostly black"} (${data.blankCount||0}/${data.N||24} blank). Nothing was measured, so this is not a real score.`,
       grade:"—",
-      summary:"The tracker couldn't read your clip — the frames were blank or no body was visible, so there's nothing to grade. Re-record side-on with your whole body in frame, in good light, using your phone's normal camera (MP4/MOV).",
+      summary:"The tracker couldn't read your clip, the frames were blank or no body was visible, so there's nothing to grade. Re-record side-on with your whole body in frame, in good light, using your phone's normal camera (MP4/MOV).",
       phases:[
         {name:"Base & balance",score:0,note:"No usable frames to measure."},
         {name:"Load & power",score:0,note:"No usable frames to measure."},
@@ -461,7 +494,7 @@ function analyzeMotion(data, sport, move, legend, level, refData, refMeasurement
   const baseScoreW=scoreRange(baseWidth,0.9,2.4,1.1);
   // L/R knee symmetry only counts toward the score for moves where an even,
   // square stance is actually correct technique (P.sym). Most moves in this app
-  // — kicks, swings, pitches, serves, sprint blocks — have a deliberately
+  //, kicks, swings, pitches, serves, sprint blocks, have a deliberately
   // staggered stance (plant leg vs. kicking/swinging leg), so a large L/R
   // difference there is correct mechanics, not a flaw to penalize.
   const symScore=P.sym?scoreLower(sym,4,45):null;
@@ -472,7 +505,7 @@ function analyzeMotion(data, sport, move, legend, level, refData, refMeasurement
   const power=avgScores([loadScore,explosiveScore]);
 
   // "more range of motion = better" is backwards for a controlled, compact move
-  // like a putt — a big flowing stroke there is a flaw (inconsistent distance
+  // like a putt, a big flowing stroke there is a flaw (inconsistent distance
   // control), not a strength. Those moves reward staying within a tight,
   // controlled range instead of maximizing it.
   const elbowROMScore=P.controlledMech?scoreRange(elbowROM,8,35,15):scoreHigher(elbowROM,25,80);
@@ -481,7 +514,7 @@ function analyzeMotion(data, sport, move, legend, level, refData, refMeasurement
 
   // most moves genuinely benefit from more arm extension at the finish, but a
   // few (see finishRange, sourced from real research) have a correct impact
-  // angle well short of full extension — reward matching that instead.
+  // angle well short of full extension, reward matching that instead.
   const extScore=P.finishRange?scoreRange(finishElbow,P.finishRange[0],P.finishRange[1],P.finishRange[2]):scoreHigher(finishElbow,120,178);
   const finish=avgScores([extScore]);
 
@@ -502,14 +535,14 @@ function analyzeMotion(data, sport, move, legend, level, refData, refMeasurement
 
   // ----- notes (templated from real numbers) -----
   const r=(x)=>x==null?"—":Math.round(x);
-  const baseNote = base==null?"Couldn't read your base clearly." : base>=80?"Quiet, level base — minimal sway through the rep." : base>=60?`Mostly steady; some lateral drift to tighten.` : "Base drifts under load — widen the stance and steady your center.";
-  const loadNote = !hasKnee?"Knee bend wasn't readable in these frames." : minKnee<=P.load[1]&&minKnee>=P.load[0]-10?`Strong load — knees bend to ~${r(minKnee)}° at the deepest point.` : minKnee>P.load[1]?`Shallow load (~${r(minKnee)}°) — bend deeper to drive from the ground.` : `Very deep bend (~${r(minKnee)}°) — make sure it's controlled, not a collapse.`;
+  const baseNote = base==null?"Couldn't read your base clearly." : base>=80?"Quiet, level base, minimal sway through the rep." : base>=60?`Mostly steady; some lateral drift to tighten.` : "Base drifts under load, widen the stance and steady your center.";
+  const loadNote = !hasKnee?"Knee bend wasn't readable in these frames." : minKnee<=P.load[1]&&minKnee>=P.load[0]-10?`Strong load, knees bend to ~${r(minKnee)}° at the deepest point.` : minKnee>P.load[1]?`Shallow load (~${r(minKnee)}°), bend deeper to drive from the ground.` : `Very deep bend (~${r(minKnee)}°), make sure it's controlled, not a collapse.`;
   const mechNote = mech==null?"Range of motion wasn't readable." : P.controlledMech
-    ? (mech>=80?`Compact, controlled stroke — arm moves through only ~${r(elbowROM)}° of motion.` : mech>=60?"Stroke is fairly controlled; steady it a touch more." : `Stroke swings too far (~${r(elbowROM)}° at the arm) — keep it short and controlled for consistent distance.`)
-    : (mech>=80?`Full range — arm swings through ~${r(elbowROM)}° of motion.` : mech>=60?"Decent range; let the motion travel a touch further." : `Limited range (~${r(elbowROM)}° at the arm) — open up the full motion path.`);
+    ? (mech>=80?`Compact, controlled stroke, arm moves through only ~${r(elbowROM)}° of motion.` : mech>=60?"Stroke is fairly controlled; steady it a touch more." : `Stroke swings too far (~${r(elbowROM)}° at the arm), keep it short and controlled for consistent distance.`)
+    : (mech>=80?`Full range, arm swings through ~${r(elbowROM)}° of motion.` : mech>=60?"Decent range; let the motion travel a touch further." : `Limited range (~${r(elbowROM)}° at the arm), open up the full motion path.`);
   const finishNote = finish==null?"Follow-through wasn't readable." : P.finishRange
-    ? (finish>=80?`Clean impact position — arm at ~${r(finishElbow)}°, right in the target range for this punch.` : finishElbow!=null&&finishElbow<P.finishRange[0]?`Too little extension (~${r(finishElbow)}°) — snap through the target a bit more.` : finishElbow!=null&&finishElbow>P.finishRange[1]?`Over-extending (~${r(finishElbow)}°) — a fully straight arm at impact isn't correct technique here; keep a slight bend.` : "Extension is close, but not quite locked into the target range.")
-    : (finish>=80?`Long, balanced finish — arm extends to ~${r(finishElbow)}°.` : finish>=60?"Finish is okay; hold the extension a beat longer." : `Finish cuts short (arm to ~${r(finishElbow)}°) — extend fully through the motion.`);
+    ? (finish>=80?`Clean impact position, arm at ~${r(finishElbow)}°, right in the target range for this punch.` : finishElbow!=null&&finishElbow<P.finishRange[0]?`Too little extension (~${r(finishElbow)}°), snap through the target a bit more.` : finishElbow!=null&&finishElbow>P.finishRange[1]?`Over-extending (~${r(finishElbow)}°), a fully straight arm at impact isn't correct technique here; keep a slight bend.` : "Extension is close, but not quite locked into the target range.")
+    : (finish>=80?`Long, balanced finish, arm extends to ~${r(finishElbow)}°.` : finish>=60?"Finish is okay; hold the extension a beat longer." : `Finish cuts short (arm to ~${r(finishElbow)}°), extend fully through the motion.`);
 
   const phases=[
     {name:"Base & balance", score:base==null?50:base, note:baseNote},
@@ -541,15 +574,15 @@ function analyzeMotion(data, sport, move, legend, level, refData, refMeasurement
     : `Your ${catLabel[bestCat]} is the standout here, while ${catLabel[weak]} is the biggest opportunity. Every score below comes straight from your tracked joint angles.`;
 
   const analysis = lowTrack
-    ? ["The tracker only got a partial read, so these are rough indicators rather than firm grades — a cleaner side-on clip will sharpen them."]
+    ? ["The tracker only got a partial read, so these are rough indicators rather than firm grades, a cleaner side-on clip will sharpen them."]
     : [
         `Strongest: ${catLabel[bestCat]} at ${cats[bestCat]}/100. ${noteFor[bestCat]}`,
         `Focus here first: ${catLabel[weak]} at ${cats[weak]}/100. ${noteFor[weak]}`,
         `Measured from your motion: deepest knee bend ~${r(minKnee)}°, arm range of motion ~${r(elbowROM)}°, follow-through extension ~${r(finishElbow)}°, vertical rise ~${rise!=null?(rise*100).toFixed(0):"—"}% of body height.`,
-      ].concat(notSideOn?["⚠ This clip looks more front-on than side-on — knee bend and arm-extension angles read less accurately from this camera angle. Re-film from directly the side (perpendicular to your motion) for a sharper score."]:[]);
+      ].concat(notSideOn?["This clip looks more front-on than side-on, knee bend and arm-extension angles read less accurately from this camera angle. Re-film from directly the side (perpendicular to your motion) for a sharper score."]:[]);
 
   const observed = lowTrack
-    ? `⚠ Tracked ${tracked} frames but average joint confidence was only ${confPct}% — try a closer, full-body, side-on clip in good light for a cleaner read.`
+    ? `Tracked ${tracked} frames but average joint confidence was only ${confPct}%, try a closer, full-body, side-on clip in good light for a cleaner read.`
     : `Tracked ${tracked} frames at ${confPct}% avg joint confidence. Deepest knee bend ~${r(minKnee)}°, arm range ~${r(elbowROM)}°, vertical rise ~${rise!=null?(rise*100).toFixed(0):"—"}% of body height.`;
 
   // ----- specific form comparison: a real reference clip if one was given, -----
@@ -593,17 +626,68 @@ function analyzeMotion(data, sport, move, legend, level, refData, refMeasurement
 }
 
 // ---------- UI ----------
-const btnSolid={display:"inline-flex",alignItems:"center",gap:10,background:C.you,color:C.ink,fontFamily:DISPLAY,fontWeight:600,letterSpacing:1.5,textTransform:"uppercase",padding:"16px 30px",borderRadius:8,cursor:"pointer",fontSize:16,border:"none"};
-const btnGhost={display:"inline-flex",alignItems:"center",gap:10,background:"transparent",color:C.chalk,border:`1px solid ${C.chalk}`,fontFamily:DISPLAY,fontWeight:600,letterSpacing:1.5,textTransform:"uppercase",padding:"16px 30px",borderRadius:8,cursor:"pointer",fontSize:16};
-const inputStyle={width:"100%",background:C.panel,color:C.chalk,border:`1px solid ${C.line}`,borderRadius:8,padding:12,fontSize:14,resize:"vertical",boxSizing:"border-box"};
+const btnSolid={display:"inline-flex",alignItems:"center",justifyContent:"center",gap:8,background:C.you,color:C.ink,fontFamily:BODY,fontWeight:600,padding:"12px 20px",borderRadius:6,cursor:"pointer",fontSize:15,lineHeight:1.2,border:"none"};
+const btnGhost={display:"inline-flex",alignItems:"center",justifyContent:"center",gap:8,background:"transparent",color:C.chalk,border:"1px solid rgba(243,240,228,0.28)",fontFamily:BODY,fontWeight:600,padding:"11px 19px",borderRadius:6,cursor:"pointer",fontSize:15,lineHeight:1.2};
+const btnBack={display:"inline-flex",alignItems:"center",gap:6,background:"transparent",color:C.muted,border:"none",padding:"8px 0",cursor:"pointer",fontSize:14,fontFamily:BODY};
+const subtitle={color:C.muted,margin:"0 0 24px",fontSize:15,lineHeight:1.55,maxWidth:640};
+const inputStyle={width:"100%",background:C.panel,color:C.chalk,border:`1px solid ${C.line}`,borderRadius:6,padding:"11px 12px",fontSize:15,resize:"vertical",boxSizing:"border-box"};
 function gradeColor(g){ if(!g)return C.muted; const c=g[0].toUpperCase(); if(c==="A")return C.good; if(c==="B")return C.legend; if(c==="C")return C.you; return "#E0573D"; }
 
-function Bar({value,color,delay=0}){ const [w,setW]=useState(0); useEffect(()=>{const t=setTimeout(()=>setW(value),80+delay);return()=>clearTimeout(t);},[value,delay]); return (<div style={{height:10,background:"rgba(243,240,228,0.08)",borderRadius:6,overflow:"hidden"}}><div style={{width:`${w}%`,height:"100%",background:color,borderRadius:6,transition:"width 1.1s cubic-bezier(.16,1,.3,1)"}}/></div>); }
-function Field({label,children}){ return (<div><div style={{fontSize:12,letterSpacing:1,textTransform:"uppercase",color:C.muted,marginBottom:8,fontFamily:DISPLAY}}>{label}</div>{children}</div>); }
-function Select({value,onChange,options,accent}){ return (<select value={value} onChange={e=>onChange(e.target.value)} style={{width:"100%",background:C.panel,color:accent||C.chalk,border:`1px solid ${C.line}`,borderRadius:8,padding:"11px 12px",fontSize:15,cursor:"pointer",boxSizing:"border-box"}}>{options.map(o=>(<option key={o} value={o} style={{background:C.panel,color:C.chalk}}>{o}</option>))}</select>); }
+function Bar({value,color}){ return (<div style={{height:8,background:"rgba(243,240,228,0.08)",borderRadius:4,overflow:"hidden"}}><div style={{width:`${clamp(value||0,0,100)}%`,height:"100%",background:color,borderRadius:4}}/></div>); }
+
+const ICONS={
+  play:<path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="none"/>,
+  rec:<circle cx="12" cy="12" r="6" fill="currentColor" stroke="none"/>,
+  stop:<rect x="6.5" y="6.5" width="11" height="11" rx="1.5" fill="currentColor" stroke="none"/>,
+  upload:<><path d="M12 15V4"/><path d="M7.5 8.5L12 4l4.5 4.5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></>,
+  camera:<><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10.5l5-3v9l-5-3"/></>,
+  comment:<path d="M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H10l-5 4v-4H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/>,
+  trash:<><path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l1 12.5h9l1-12.5"/></>,
+  link:<><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></>,
+  external:<><path d="M14 4h6v6"/><path d="M20 4l-8.5 8.5"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></>,
+  menu:<><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></>,
+  back:<path d="M14.5 5.5L8 12l6.5 6.5"/>,
+  flip:<><path d="M12 3v18" strokeDasharray="2 2.5"/><path d="M8.5 7.5L4 12l4.5 4.5z"/><path d="M15.5 7.5L20 12l-4.5 4.5z"/></>,
+  check:<path d="M5 12.5l4.5 4.5L19 7.5"/>,
+  close:<><path d="M6 6l12 12"/><path d="M18 6L6 18"/></>,
+};
+function Icon({name,size=16,style}){ return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" style={{flex:"none",display:"block",...style}}>{ICONS[name]}</svg>); }
+const SPORT_GLYPHS={
+  basketball:<><circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><path d="M3 12h18"/><path d="M5.7 5.6c3.2 3.4 3.2 9.4 0 12.8"/><path d="M18.3 5.6c-3.2 3.4-3.2 9.4 0 12.8"/></>,
+  baseball:<><circle cx="12" cy="12" r="9"/><path d="M7.2 4.4c2.3 2.6 2.3 12.6 0 15.2"/><path d="M16.8 4.4c-2.3 2.6-2.3 12.6 0 15.2"/></>,
+  soccer:<><circle cx="12" cy="12" r="9"/><path d="M12 8.2l3.6 2.6-1.4 4.2H9.8l-1.4-4.2z"/><path d="M12 8.2V3.2"/><path d="M15.6 10.8l4.7-1.6"/><path d="M14.2 15l2.9 4"/><path d="M9.8 15l-2.9 4"/><path d="M8.4 10.8L3.7 9.2"/></>,
+  tennis:<><circle cx="12" cy="12" r="9"/><path d="M5.2 6.1c3.6 3 3.6 8.8 0 11.8"/><path d="M18.8 6.1c-3.6 3-3.6 8.8 0 11.8"/></>,
+  swim:<><circle cx="16.5" cy="6.5" r="2"/><path d="M4 12.5l5-4 3.5 2.5"/><path d="M2.5 16c2.4-1.6 4.6-1.6 7 0s4.6 1.6 7 0 4.1-1.4 5.5-.6"/><path d="M2.5 20c2.4-1.6 4.6-1.6 7 0s4.6 1.6 7 0 4.1-1.4 5.5-.6"/></>,
+  run:<><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5"/><path d="M10 2.5h4"/><path d="M12 2.5v3.5"/><path d="M18.5 6.5l1.4-1.4"/></>,
+};
+function SportGlyph({name,size=40}){ return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{SPORT_GLYPHS[name]||SPORT_GLYPHS.run}</svg>); }
+const badge={background:"rgba(16,19,15,0.75)",color:C.muted,fontSize:11,fontWeight:600,letterSpacing:0.8,textTransform:"uppercase",padding:"3px 7px",borderRadius:4};
+
+// Hash routes give each top-level view its own URL, title, and back-button entry.
+const ROUTES={home:"",feed:"feed",shorts:"shorts",community:"community",rankings:"rankings",teams:"teams",history:"history",recruit:"recruiting",feedback:"feedback",account:"account",auth:"sign-in"};
+const PRIVATE_ROUTES=new Set(["teams","history","recruit","feedback","account","rankings"]);
+const TITLES={home:"LegendSports: video technique analysis for athletes",feed:"Highlights feed | LegendSports",shorts:"Shorts | LegendSports",community:"Community Q&A | LegendSports",rankings:"Team rankings | LegendSports",teams:"Teams | LegendSports",history:"Your sessions | LegendSports",recruit:"Recruiting | LegendSports",feedback:"Feedback | LegendSports",account:"Account | LegendSports",auth:"Sign in | LegendSports",report:"Motion report | LegendSports",context:"Set up analysis | LegendSports",record:"Record a clip | LegendSports",analyzing:"Analyzing | LegendSports",creator:"Creator | LegendSports"};
+function isAuthHash(){ const h=window.location.hash||""; return h.includes("access_token")||h.includes("type=")||h.includes("error="); }
+function routeFromHash(){ if(isAuthHash()) return null; const h=(window.location.hash||"").replace(/^#\/?/,""); const k=Object.keys(ROUTES).find(k=>ROUTES[k]===h); return k||null; }
+const TOTAL_MOVES=Object.values(SPORTS).reduce((n,s)=>n+s.moves.length,0);
+function Field({label,children}){ return (<div><div style={{fontSize:12,letterSpacing:0.8,textTransform:"uppercase",color:C.muted,marginBottom:8,fontFamily:BODY,fontWeight:600}}>{label}</div>{children}</div>); }
+function Select({value,onChange,options,accent}){ return (<select value={value} onChange={e=>onChange(e.target.value)} style={{width:"100%",background:C.panel,color:accent||C.chalk,border:`1px solid ${C.line}`,borderRadius:6,padding:"11px 12px",fontSize:15,cursor:"pointer",boxSizing:"border-box"}}>{options.map(o=>(<option key={o} value={o} style={{background:C.panel,color:C.chalk}}>{o}</option>))}</select>); }
 
 function App(){
-  const [step,setStep]=useState("home");
+  const [step,setStep]=useState(()=>{ const r=routeFromHash(); return r&&!PRIVATE_ROUTES.has(r)?r:"home"; });
+  const pendingRoute=useRef((()=>{ const r=routeFromHash(); return r&&PRIVATE_ROUTES.has(r)?r:null; })());
+  useEffect(()=>{
+    document.title=TITLES[step]||TITLES.home;
+    if(isAuthHash()) return;
+    const slug=ROUTES[step]; if(slug===undefined) return;
+    const cur=(window.location.hash||"").replace(/^#\/?/,"");
+    if(cur!==slug) window.history.pushState(null,"",slug?`#/${slug}`:window.location.pathname+window.location.search);
+  },[step]);
+  useEffect(()=>{
+    const onPop=()=>{ const r=routeFromHash(); if(r===null&&isAuthHash()) return; setStep(r||"home"); window.scrollTo(0,0); };
+    window.addEventListener("popstate",onPop); return ()=>window.removeEventListener("popstate",onPop);
+  },[]);
+  useEffect(()=>{ if(step!=="shorts") window.scrollTo(0,0); },[step]);
   const [videoUrl,setVideoUrl]=useState(null);
   const [fileName,setFileName]=useState("");
   const [refVideoUrl,setRefVideoUrl]=useState(null);
@@ -748,10 +832,10 @@ function App(){
 
   useEffect(()=>{ if(step==="feed"&&feedMode==="record") startFeedCam(); else stopFeedCam(); return ()=>stopFeedCam(); },[step,feedMode]);
   useEffect(()=>{ if(!feedRecording)return; const id=setInterval(()=>setFeedRecSecs(s=>s+1),1000); return ()=>clearInterval(id); },[feedRecording]);
-  useEffect(()=>{ if(!feedRecording)return; const max=fFormat==="Short-form"?150:1800; if(feedRecSecs>=max){ stopFeedRec(); setFeedRecErr(`Reached the ${fFormat.toLowerCase()} limit (${fFormat==="Short-form"?"2:30":"30:00"}) — recording stopped.`); } },[feedRecSecs,feedRecording,fFormat]);
+  useEffect(()=>{ if(!feedRecording)return; const max=fFormat==="Short-form"?150:1800; if(feedRecSecs>=max){ stopFeedRec(); setFeedRecErr(`Reached the ${fFormat.toLowerCase()} limit (${fFormat==="Short-form"?"2:30":"30:00"}), recording stopped.`); } },[feedRecSecs,feedRecording,fFormat]);
   async function startFeedCam(){
     setFeedRecErr("");
-    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ setFeedRecErr("Camera needs https or localhost — it'll work once this is a hosted site. For now, post by link."); return; }
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ setFeedRecErr("Camera needs https or localhost, it'll work once this is a hosted site. For now, post by link."); return; }
     try{ let s; try{ s=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"},audio:true}); }catch(e){ s=await navigator.mediaDevices.getUserMedia({video:true,audio:true}); } feedStreamRef.current=s; if(feedLiveRef.current){ feedLiveRef.current.srcObject=s; feedLiveRef.current.play().catch(()=>{}); } }
     catch(e){ setFeedRecErr("Camera permission was blocked. Allow it, or post by link instead."); }
   }
@@ -792,8 +876,8 @@ function App(){
   async function postClipComment(clipId){
     setClipCommentErr("");
     const txt=(clipCommentDrafts[clipId]||"").trim(); if(!txt)return;
-    if(guestBlocked("message")){ promptGuestSignup("You've used your free comment as a guest — create a free account to keep commenting."); return; }
-    const user=await ensureAuthedUser(); if(!user){ setClipCommentErr("Couldn't start a session — try reloading."); return; }
+    if(guestBlocked("message")){ promptGuestSignup("You've used your free comment as a guest, create a free account to keep commenting."); return; }
+    const user=await ensureAuthedUser(); if(!user){ setClipCommentErr("Couldn't start a session, try reloading."); return; }
     const {error}=await sb.from("clip_comments").insert({clip_id:clipId,user_id:user.id,body:txt});
     if(error){ setClipCommentErr("Comment failed: "+error.message); return; }
     markGuestUsed("message");
@@ -813,8 +897,8 @@ function App(){
   async function postQuestion(){
     setCommunityErr("");
     const t=qTitle.trim(); if(!t){ setCommunityErr("Add a question first."); return; }
-    if(guestBlocked("message")){ promptGuestSignup("You've used your free community post as a guest — create a free account to keep posting."); return; }
-    const user=await ensureAuthedUser(); if(!user){ setCommunityErr("Couldn't start a session — try reloading."); return; }
+    if(guestBlocked("message")){ promptGuestSignup("You've used your free community post as a guest, create a free account to keep posting."); return; }
+    const user=await ensureAuthedUser(); if(!user){ setCommunityErr("Couldn't start a session, try reloading."); return; }
     const {data,error}=await sb.from("questions").insert({user_id:user.id,sport:qSport,title:t,body:qBody.trim()}).select("id").single();
     if(error){ setCommunityErr("Post failed: "+error.message); return; }
     markGuestUsed("message");
@@ -823,8 +907,8 @@ function App(){
   async function postAnswer(qid){
     setCommunityErr("");
     const txt=(answerDrafts[qid]||"").trim(); if(!txt)return;
-    if(guestBlocked("message")){ promptGuestSignup("You've used your free community post as a guest — create a free account to keep posting."); return; }
-    const user=await ensureAuthedUser(); if(!user){ setCommunityErr("Couldn't start a session — try reloading."); return; }
+    if(guestBlocked("message")){ promptGuestSignup("You've used your free community post as a guest, create a free account to keep posting."); return; }
+    const user=await ensureAuthedUser(); if(!user){ setCommunityErr("Couldn't start a session, try reloading."); return; }
     const {error}=await sb.from("answers").insert({question_id:qid,user_id:user.id,body:txt});
     if(error){ setCommunityErr("Answer failed: "+error.message); return; }
     markGuestUsed("message");
@@ -840,8 +924,8 @@ function App(){
     setFeedPostErr("");
     const t=fTitle.trim();
     if(!t){ setFeedPostErr("Add a title first."); return; }
-    if(guestBlocked("reel")){ promptGuestSignup("You've used your free reel as a guest — create a free account to post more."); return; }
-    const user=await ensureAuthedUser(); if(!user){ setFeedPostErr("Couldn't start a session — try reloading."); return; }
+    if(guestBlocked("reel")){ promptGuestSignup("You've used your free reel as a guest, create a free account to post more."); return; }
+    const user=await ensureAuthedUser(); if(!user){ setFeedPostErr("Couldn't start a session, try reloading."); return; }
     let link=fLink.trim();
     if(feedMode==="record"){
       const blob=feedBlobRef.current; if(!blob){ setFeedRecErr("Nothing recorded yet."); return; }
@@ -873,7 +957,7 @@ function App(){
   async function submitFeedback(){
     setFeedbackErr("");
     const m=fbMsg.trim(); if(!m)return;
-    const {data:{user}}=await sb.auth.getUser(); if(!user){ setFeedbackErr("You're signed out — reload and sign in again."); return; }
+    const {data:{user}}=await sb.auth.getUser(); if(!user){ setFeedbackErr("You're signed out, reload and sign in again."); return; }
     const {error}=await sb.from("feedback").insert({user_id:user.id,category:fbCat,message:m});
     if(error){ setFeedbackErr("Submit failed: "+error.message); return; }
     setFbMsg(""); setFbSent(true); await refreshFeedback();
@@ -881,11 +965,11 @@ function App(){
   }
   function videoEmbed(link){
     if(!link) return null;
-    if(link.startsWith("blob:")) return <video src={link} controls style={{width:"100%",borderRadius:8,maxHeight:380,background:"#000"}}/>;
+    if(link.startsWith("blob:")) return <video src={link} controls style={{width:"100%",borderRadius:6,maxHeight:380,background:"#000"}}/>;
     const yt=link.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{11})/);
-    if(yt){ return <iframe width="100%" height="260" src={`https://www.youtube-nocookie.com/embed/${yt[1]}`} allow="encrypted-media" allowFullScreen style={{borderRadius:8,border:"none",display:"block"}}/>; }
-    if(/\.(mp4|webm|ogg|mov)(\?|$)/i.test(link)){ return <video src={link} controls style={{width:"100%",borderRadius:8,maxHeight:380,background:"#000"}}/>; }
-    return <a href={link} target="_blank" rel="noopener noreferrer" style={{color:C.you,fontSize:14}}>Watch ↗ {link}</a>;
+    if(yt){ return <iframe width="100%" height="260" src={`https://www.youtube-nocookie.com/embed/${yt[1]}`} allow="encrypted-media" allowFullScreen style={{borderRadius:6,border:"none",display:"block"}}/>; }
+    if(/\.(mp4|webm|ogg|mov)(\?|$)/i.test(link)){ return <video src={link} controls style={{width:"100%",borderRadius:6,maxHeight:380,background:"#000"}}/>; }
+    return <a href={link} target="_blank" rel="noopener noreferrer" style={{color:C.you,fontSize:14,display:"inline-flex",alignItems:"center",gap:6}}>Watch on the original site <Icon name="external" size={14}/></a>;
   }
   function ytId(link){ const m=(link||"").match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{11})/); return m?m[1]:null; }
   function refPlatform(link){
@@ -898,7 +982,7 @@ function App(){
   function RefClipBadge({link,style}){
     if(!link) return null;
     return (
-      <a href={link} target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",alignItems:"center",gap:6,color:C.legend,fontSize:12.5,textDecoration:"none",border:`1px solid ${C.legend}`,borderRadius:20,padding:"5px 12px",...style}}>🔗 Reference · {refPlatform(link)} ↗</a>
+      <a href={link} target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",alignItems:"center",gap:6,color:C.chalk,fontSize:13,textDecoration:"none",border:`1px solid ${C.line}`,borderRadius:6,padding:"5px 12px",...style}}><Icon name="link" size={14}/>Reference clip on {refPlatform(link)}</a>
     );
   }
   function goToCreator(username){ setViewingCreator(username); setOpenClip(null); setStep("creator"); }
@@ -916,7 +1000,7 @@ function App(){
           {list.map(c=>(
             <div key={c.id} style={{marginBottom:8}}>
               <div style={{fontSize:13.5,lineHeight:1.5}}>{c.body}</div>
-              <div style={{color:C.muted,fontSize:11.5,marginTop:2}}>{c.author} · {fmtDate(c.date)}{c.author===profile && (<> · <span style={{cursor:"pointer",textDecoration:"underline"}} onClick={()=>deleteClipComment(c.id)}>delete</span></>)}</div>
+              <div style={{color:C.muted,fontSize:12,marginTop:2}}>{c.author} · {fmtDay(c.date)}{c.author===profile && (<> · <span style={{cursor:"pointer",textDecoration:"underline"}} onClick={()=>deleteClipComment(c.id)}>delete</span></>)}</div>
             </div>
           ))}
         </div>
@@ -926,18 +1010,18 @@ function App(){
   function clipMedia(p){
     if(p.isDemo){
       return (
-        <div style={{aspectRatio:"16/9",borderRadius:8,background:p.bg,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
-          <span style={{fontSize:44}}>{p.emoji}</span>
-          <span style={{position:"absolute",top:8,left:8,background:"rgba(0,0,0,0.4)",color:"#fff",fontSize:10.5,letterSpacing:1,textTransform:"uppercase",fontFamily:DISPLAY,padding:"3px 8px",borderRadius:12}}>Demo</span>
+        <div style={{aspectRatio:"16/9",borderRadius:6,background:C.panel2,border:`1px solid ${C.line}`,display:"flex",alignItems:"center",justifyContent:"center",position:"relative",color:"rgba(243,240,228,0.45)",boxSizing:"border-box"}}>
+          <SportGlyph name={p.sport} size={44}/>
+          <span style={{position:"absolute",top:8,left:8,...badge}}>Sample</span>
         </div>
       );
     }
     if(p.thumbnail && playingClip!==p.id){
       return (
-        <div onClick={()=>setPlayingClip(p.id)} style={{aspectRatio:"16/9",borderRadius:8,overflow:"hidden",position:"relative",cursor:"pointer",background:"#000"}}>
+        <div onClick={()=>setPlayingClip(p.id)} style={{aspectRatio:"16/9",borderRadius:6,overflow:"hidden",position:"relative",cursor:"pointer",background:"#000"}}>
           <img src={p.thumbnail} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
           <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.25)"}}>
-            <div style={{width:52,height:52,borderRadius:"50%",background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,color:"#fff"}}>▶</div>
+            <div style={{width:52,height:52,borderRadius:"50%",background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}><Icon name="play" size={22}/></div>
           </div>
         </div>
       );
@@ -947,20 +1031,20 @@ function App(){
   function clipCard(p){
     const comments=clipComments[p.id]||[];
     return (
-      <div key={p.id} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:"16px 18px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,marginBottom:10}}>
+      <div key={p.id} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"14px 14px 16px",display:"flex",flexDirection:"column"}}>
+        {clipMedia(p)}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,marginTop:12}}>
           <div>
-            <div style={{fontSize:16,fontWeight:600}}>{p.title}</div>
-            <div style={{color:C.muted,fontSize:12.5,marginTop:3}}>{p.isDemo ? p.author : <span style={{cursor:"pointer",textDecoration:"underline"}} onClick={()=>goToCreator(p.author)}>{p.author}</span>} · <span style={{color:p.format==="Short-form"?C.you:C.legend}}>{p.format}</span> · {fmtDate(p.date)}</div>
+            <div style={{fontSize:16,fontWeight:600,lineHeight:1.35}}>{p.title}</div>
+            <div style={{color:C.muted,fontSize:12.5,marginTop:3}}>{p.isDemo ? p.author : <span style={{cursor:"pointer",textDecoration:"underline"}} onClick={()=>goToCreator(p.author)}>{p.author}</span>} · <span style={{color:p.format==="Short-form"?C.you:C.legend}}>{p.format}</span> · {fmtDay(p.date)}</div>
           </div>
           {p.author===profile && <button className="fr-btn" onClick={()=>deleteClip(p.id)} style={{background:"transparent",color:C.muted,border:`1px solid ${C.line}`,borderRadius:6,padding:"5px 10px",fontSize:12,cursor:"pointer"}}>Delete</button>}
         </div>
-        {clipMedia(p)}
-        {p.desc && <p style={{margin:"12px 0 0",fontSize:14.5,lineHeight:1.55}}>{p.desc}</p>}
+        {p.desc && <p style={{margin:"8px 0 0",fontSize:14,lineHeight:1.55,color:C.muted}}>{p.desc}</p>}
         {p.refLink && <div style={{marginTop:10}}><RefClipBadge link={p.refLink}/></div>}
         {!p.isDemo && (
           <div style={{marginTop:10}}>
-            <button className="fr-btn" onClick={()=>setOpenClip(openClip===p.id?null:p.id)} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13,padding:0}}>💬 {comments.length} {comments.length===1?"comment":"comments"}{openClip===p.id?" ▲":" ▼"}</button>
+            <button className="fr-btn" onClick={()=>setOpenClip(openClip===p.id?null:p.id)} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13,padding:0,gap:6}}><Icon name="comment" size={15}/>{comments.length} {comments.length===1?"comment":"comments"}{openClip===p.id?" · hide":""}</button>
           </div>
         )}
         {!p.isDemo && openClip===p.id && renderComments(p.id)}
@@ -975,14 +1059,14 @@ function App(){
     const uname=prof?.username||user.phone||(user.email||"").split("@")[0]||"you";
     const s=loadStore(); if(!s.profiles[uname]) s.profiles[uname]={passcode:"",sessions:[]}; s.current=uname; saveStore(s);
     setProfile(uname); setSessions(s.profiles[uname].sessions||[]); setRecruit(s.profiles[uname].recruit||{});
-    setAuthEmail(""); setAuthUsername(""); setAuthPassword(""); setAuthErr(""); setAuthSent(false); setAuthTaken(false); setAuthForgot(false); setAuthMode("signup"); setStep("home");
+    setAuthEmail(""); setAuthUsername(""); setAuthPassword(""); setAuthErr(""); setAuthSent(false); setAuthTaken(false); setAuthForgot(false); setAuthMode("signup"); setStep(pendingRoute.current||"home"); pendingRoute.current=null;
   }
   useEffect(()=>{
     const isRecovery=typeof window!=="undefined" && window.location.hash.includes("type=recovery");
     sb.auth.getSession().then(({data:{session}})=>{
       if(session && isRecovery){ window.history.replaceState(null,"",window.location.pathname); setStep("resetPassword"); }
       else if(session && session.user && !session.user.is_anonymous){ loadProfileFromSession(); }
-      // no session (or a leftover anonymous guest session) — stay on the public flow, no forced sign-up wall
+      // no session (or a leftover anonymous guest session), stay on the public flow, no forced sign-up wall
     });
   },[]);
 
@@ -1006,7 +1090,7 @@ function App(){
   function goToSignIn(){ setAuthTaken(false); setAuthForgot(false); setAuthMode("signin"); setAuthUsername(""); setAuthPassword(""); setAuthErr(""); }
   function authButtonLabel(){
     if(authBusy) return authMode==="signin"?"Signing in…":"Creating…";
-    return authMode==="signin"?"Sign in →":"Create account →";
+    return authMode==="signin"?"Sign in":"Create account";
   }
 
   async function doSignUp(){
@@ -1058,7 +1142,7 @@ function App(){
     try{
       const {data:exists,error:checkErr}=await sb.rpc("email_has_account",{check_email:email});
       if(checkErr) throw checkErr;
-      if(!exists){ setAuthErr("No account found for that email — create one instead."); setAuthBusy(false); return; }
+      if(!exists){ setAuthErr("No account found for that email, create one instead."); setAuthBusy(false); return; }
       const captchaToken=await getCaptchaToken();
       const {error}=await sb.auth.signInWithOtp({email, options:{shouldCreateUser:true, emailRedirectTo:"https://legendsports.arjunkilambi.com", captchaToken}});
       if(error) throw error;
@@ -1089,7 +1173,7 @@ function App(){
       if(error) throw error;
       setNewPw(""); setNewPw2("");
       if(step==="resetPassword"){ await loadProfileFromSession(); }
-      else{ setPwMsg("Password set — you can now sign in with it on any device."); }
+      else{ setPwMsg("Password set, you can now sign in with it on any device."); }
     } catch(e){ setPwErr(e.message||"Something went wrong."); }
     setPwBusy(false);
   }
@@ -1137,13 +1221,13 @@ function App(){
       specific_measured_differences: (rep.match&&rep.match.lines)||[],
     };
     const benchmarkNote = rep.match&&rep.match.real
-      ? `The "specific_measured_differences" below are real measured numbers from an actual reference clip (${rep.match.refLabel||"a reference clip"}) — treat them as ground truth, not estimates.`
-      : `Compare them to ${legend} as an aspirational benchmark; do not invent quotes or claim these are ${legend}'s real measured data — the legend numbers are an idealized illustrative target, not motion-capture.`;
+      ? `The "specific_measured_differences" below are real measured numbers from an actual reference clip (${rep.match.refLabel||"a reference clip"}), treat them as ground truth, not estimates.`
+      : `Compare them to ${legend} as an aspirational benchmark; do not invent quotes or claim these are ${legend}'s real measured data, the legend numbers are an idealized illustrative target, not motion-capture.`;
     const prompt = `You are an elite ${sport} coach. A pose tracker measured this athlete's "${move}" from video and produced these REAL numbers (0-100 scores from tracked joint angles). Do NOT change the numbers. ${benchmarkNote}
 Measured data: ${JSON.stringify(measured)}
 Athlete level: ${level}.
 Write sharper, motivating-but-honest coaching grounded ONLY in these numbers, referencing the specific measured differences where useful. Respond with ONLY minified JSON, no markdown:
-{"summary":"<2 sentences under 45 words>","analysis":["<3 short paragraphs, each under 30 words, referencing the actual scores>"],"plan":[{"title":"<focus area>","why":"<1 sentence>","drills":["<drill>","<drill>","<drill>"],"goal":"<measurable weekly goal>","weeks":["Week 1 — ...","Week 2 — ...","Week 3 — ..."]}]}
+{"summary":"<2 sentences under 45 words>","analysis":["<3 short paragraphs, each under 30 words, referencing the actual scores>"],"plan":[{"title":"<focus area>","why":"<1 sentence>","drills":["<drill>","<drill>","<drill>"],"goal":"<measurable weekly goal>","weeks":["Week 1: ...","Week 2: ...","Week 3: ..."]}]}
 Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
     const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`;
     const res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
@@ -1155,7 +1239,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
   }
 
   async function analyze(){
-    if(guestBlocked("video")){ promptGuestSignup("You've used your free analysis as a guest — create a free account to keep tracking your motion."); return; }
+    if(guestBlocked("video")){ promptGuestSignup("You've used your free analysis as a guest, create a free account to keep tracking your motion."); return; }
     if(!sport.trim()||!move.trim()||!legend.trim()){ setError("Fill in sport, move, and who to compare to."); return; }
     setStep("analyzing"); setError(""); setFrames([]); setProgress(0); setPhase("Loading pose model (first run downloads it once)…");
     try{
@@ -1178,103 +1262,110 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
       if(apiKey.trim() && !rep.lowTrack){
         setPhase("AI coach is writing your plan…");
         try{ rep=await enhanceWithAI(rep,apiKey.trim()); }
-        catch(e){ rep={...rep, aiError:"AI coach unavailable ("+(e.message||"error")+") — showing the built-in analysis."}; }
+        catch(e){ rep={...rep, aiError:"AI coach unavailable ("+(e.message||"error")+"), showing the built-in analysis."}; }
       }
       setReport(rep); saveSession(rep, data.shots); markGuestUsed("video"); setStep("report");
     }catch(err){ setError("Analysis failed: "+(err.message||err)+". Try a shorter, clearer clip, and make sure you're online for the first run."); setStep("context"); }
   }
 
+  function go(k){
+    setNavOpen(false);
+    if(PRIVATE_ROUTES.has(k)&&!profile){ pendingRoute.current=k; setAuthPromptMsg(""); setAuthMode("signin"); setStep("auth"); return; }
+    if(k==="home"){ reset(); return; }
+    if(k==="shorts") setShortsIndex(0);
+    if(k==="teams") setOpenTeam(null);
+    if(k==="account"){ setPwErr(""); setPwMsg(""); }
+    setStep(k);
+  }
+  function navLink(k,label){ const active=step===k||(k==="home"&&["home","context","record","analyzing","report"].includes(step))||(k==="feed"&&step==="creator"); return (<a key={k} href={ROUTES[k]?`#/${ROUTES[k]}`:"./"} className={"fr-nav"+(active?" is-active":"")} aria-current={active?"page":undefined} onClick={e=>{e.preventDefault();go(k);}}>{label}</a>); }
   function reset(){ stopCamera(); setRecording(false); setRecError(""); if(videoUrl)URL.revokeObjectURL(videoUrl); setVideoUrl(null); setFileName(""); clearRefFile(); setRefSessionId(null); setReport(null); setFrames([]); setError(""); setProgress(0); setStep("home"); }
 
   return (
     <div style={{background:C.ink,color:C.chalk,minHeight:"100vh",fontFamily:BODY}}>
       <div style={{maxWidth:980,margin:"0 auto",padding:"0 20px"}}>
-        <header className="fr-header" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"22px 0",borderBottom:`1px solid ${C.line}`,flexWrap:"wrap"}}>
-          <div style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",flex:"none"}} onClick={reset}>
-            <div style={{width:30,height:30,borderRadius:6,background:C.you,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:DISPLAY,fontWeight:700,color:C.ink,flexShrink:0}}>LS</div>
-            <span style={{fontFamily:DISPLAY,fontWeight:600,letterSpacing:1.5,textTransform:"uppercase",whiteSpace:"nowrap"}}>LegendSports</span>
-          </div>
+        <header className="fr-header no-print" style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:24,padding:"18px 0",borderBottom:`1px solid ${C.line}`}}>
+          <a href="./" onClick={e=>{e.preventDefault();reset();}} aria-label="LegendSports home" style={{display:"flex",alignItems:"center",gap:10,flex:"none",color:C.chalk,textDecoration:"none"}}>
+            <div style={{width:28,height:28,borderRadius:6,background:C.you,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:DISPLAY,fontWeight:700,fontSize:14,color:C.ink,flexShrink:0}}>LS</div>
+            <span style={{fontFamily:DISPLAY,fontWeight:600,letterSpacing:1,textTransform:"uppercase",fontSize:17,whiteSpace:"nowrap"}}>LegendSports</span>
+          </a>
           {profile ? (
             <>
-              <div className="fr-header-nav" style={{display:"flex",alignItems:"center",gap:14,fontSize:13,flexWrap:"wrap",justifyContent:"flex-end"}}>
-                <button className="fr-btn" onClick={()=>setStep("history")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>History ({sessions.length})</button>
-                <button className="fr-btn" onClick={()=>setStep("recruit")} style={{background:"transparent",color:C.legend,border:`1px solid ${C.legend}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Recruiting</button>
-                <button className="fr-btn" onClick={()=>setStep("community")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Community</button>
-                <button className="fr-btn" onClick={()=>setStep("feed")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Feed</button>
-                <button className="fr-btn" onClick={()=>{setShortsIndex(0);setStep("shorts");}} style={{background:"transparent",color:C.legend,border:`1px solid ${C.legend}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Shorts</button>
-                <button className="fr-btn" onClick={()=>setStep("feedback")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Feedback</button>
-                <button className="fr-btn" onClick={()=>{setOpenTeam(null);setStep("teams");}} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Teams</button>
-                <button className="fr-btn" onClick={()=>setStep("rankings")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Rankings</button>
-                <span style={{color:C.muted}}>{profile}</span>
-                <button className="fr-btn" onClick={()=>{setPwErr("");setPwMsg("");setStep("account");}} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Account</button>
-                <button className="fr-btn" onClick={signOut} style={{background:"transparent",color:C.you,border:"none",cursor:"pointer",fontSize:13}}>Switch</button>
-              </div>
-              <button className="fr-hamburger" onClick={()=>setNavOpen(true)} aria-label="Open menu" style={{alignItems:"center",justifyContent:"center",background:"transparent",border:`1px solid ${C.line}`,color:C.chalk,width:38,height:38,borderRadius:8,cursor:"pointer",fontSize:16,flex:"none"}}>☰</button>
+              <nav className="fr-header-nav" aria-label="Main" style={{display:"flex",alignItems:"center",gap:20,flex:1,justifyContent:"flex-end"}}>
+                {navLink("home","Analyze")}
+                {navLink("history","History")}
+                {navLink("recruit","Recruiting")}
+                {navLink("feed","Feed")}
+                {navLink("community","Community")}
+                {navLink("teams","Teams")}
+                {navLink("rankings","Rankings")}
+                <span style={{width:1,height:18,background:C.line}}/>
+                <a href="#/account" className={"fr-nav"+(step==="account"?" is-active":"")} onClick={e=>{e.preventDefault();go("account");}} title="Account settings">{profile}</a>
+                <button className="fr-nav" onClick={signOut}>Sign out</button>
+              </nav>
+              <button className="fr-hamburger fr-btn" onClick={()=>setNavOpen(true)} aria-label="Open menu" style={{background:"transparent",border:`1px solid ${C.line}`,color:C.chalk,width:38,height:38,borderRadius:6,cursor:"pointer",flex:"none",padding:0}}><Icon name="menu" size={18}/></button>
             </>
           ) : (
-            <div style={{display:"flex",alignItems:"center",gap:10,fontSize:13,flexWrap:"wrap",justifyContent:"flex-end"}}>
-              <button className="fr-btn" onClick={()=>setStep("community")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Community</button>
-              <button className="fr-btn" onClick={()=>setStep("feed")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Feed</button>
-              <button className="fr-btn" onClick={()=>{setShortsIndex(0);setStep("shorts");}} style={{background:"transparent",color:C.legend,border:`1px solid ${C.legend}`,padding:"7px 14px",borderRadius:20,cursor:"pointer",fontSize:13}}>Shorts</button>
-              <button className="fr-btn" onClick={()=>{setAuthPromptMsg("");setStep("auth");}} style={{background:C.you,color:C.ink,border:"none",padding:"7px 16px",borderRadius:20,cursor:"pointer",fontSize:13,fontWeight:600}}>Sign up</button>
-            </div>
+            <nav aria-label="Main" style={{display:"flex",alignItems:"center",gap:20,fontSize:14}}>
+              <span className="fr-header-nav" style={{display:"flex",gap:20}}>
+                {navLink("feed","Feed")}
+                {navLink("shorts","Shorts")}
+                {navLink("community","Community")}
+              </span>
+              <a href="#/sign-in" className="fr-nav" onClick={e=>{e.preventDefault();setAuthPromptMsg("");setAuthMode("signin");setStep("auth");}}>Sign in</a>
+              <button className="fr-btn" onClick={()=>{setAuthPromptMsg("");setAuthMode("signup");setStep("auth");}} style={{...btnSolid,padding:"8px 14px",fontSize:14,whiteSpace:"nowrap"}}>Sign up</button>
+            </nav>
           )}
         </header>
+        {!profile && (
+          <nav className="fr-hamburger no-print" aria-label="Sections" style={{gap:20,padding:"4px 0",borderBottom:`1px solid ${C.line}`,overflowX:"auto"}}>
+            {navLink("home","Analyze")}{navLink("feed","Feed")}{navLink("shorts","Shorts")}{navLink("community","Community")}
+          </nav>
+        )}
 
         {profile && (
           <>
             <div onClick={()=>setNavOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:999,opacity:navOpen?1:0,pointerEvents:navOpen?"auto":"none",transition:"opacity .28s ease"}}/>
             <div style={{position:"fixed",top:0,left:0,height:"100%",width:"78vw",maxWidth:300,background:C.panel,zIndex:1000,transform:navOpen?"translateX(0)":"translateX(-100%)",transition:"transform .3s cubic-bezier(.16,1,.3,1)",display:"flex",flexDirection:"column",padding:"18px 16px",boxShadow:"8px 0 24px rgba(0,0,0,0.4)",boxSizing:"border-box",overflowY:"auto"}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
-                <span style={{fontFamily:DISPLAY,fontWeight:600,letterSpacing:1.5,textTransform:"uppercase",fontSize:14}}>Menu</span>
-                <button className="fr-btn" onClick={()=>setNavOpen(false)} aria-label="Close menu" style={{background:"transparent",border:"none",color:C.chalk,fontSize:22,cursor:"pointer",lineHeight:1,padding:4}}>×</button>
+                <span style={{fontWeight:600,fontSize:15}}>Menu</span>
+                <button className="fr-btn" onClick={()=>setNavOpen(false)} aria-label="Close menu" style={{background:"transparent",border:"none",color:C.chalk,cursor:"pointer",padding:6}}><Icon name="close" size={18}/></button>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:8,fontSize:14}}>
-                {[
-                  {label:`History (${sessions.length})`,action:()=>setStep("history"),color:C.chalk,border:C.line},
-                  {label:"Recruiting",action:()=>setStep("recruit"),color:C.legend,border:C.legend},
-                  {label:"Community",action:()=>setStep("community"),color:C.chalk,border:C.line},
-                  {label:"Feed",action:()=>setStep("feed"),color:C.chalk,border:C.line},
-                  {label:"Shorts",action:()=>{setShortsIndex(0);setStep("shorts");},color:C.legend,border:C.legend},
-                  {label:"Feedback",action:()=>setStep("feedback"),color:C.chalk,border:C.line},
-                  {label:"Teams",action:()=>{setOpenTeam(null);setStep("teams");},color:C.chalk,border:C.line},
-                  {label:"Rankings",action:()=>setStep("rankings"),color:C.chalk,border:C.line},
-                  {label:"Account",action:()=>{setPwErr("");setPwMsg("");setStep("account");},color:C.chalk,border:C.line},
-                ].map((item,i)=>(
-                  <button key={i} className="fr-btn" onClick={()=>{item.action();setNavOpen(false);}} style={{background:"transparent",color:item.color,border:`1px solid ${item.border}`,padding:"10px 14px",borderRadius:10,cursor:"pointer",fontSize:14,textAlign:"left"}}>{item.label}</button>
+                {[["home","Analyze a clip"],["history",`History (${sessions.length})`],["recruit","Recruiting"],["feed","Feed"],["shorts","Shorts"],["community","Community"],["teams","Teams"],["rankings","Rankings"],["account","Account"],["feedback","Send feedback"]].map(([k,label])=>(
+                  <button key={k} className="fr-btn" onClick={()=>go(k)} style={{justifyContent:"flex-start",background:step===k?C.panel2:"transparent",color:C.chalk,border:"none",padding:"11px 12px",borderRadius:6,cursor:"pointer",fontSize:15,textAlign:"left"}}>{label}</button>
                 ))}
                 <div style={{height:1,background:C.line,margin:"8px 0"}}/>
-                <div style={{color:C.muted,fontSize:13,padding:"0 2px"}}>{profile}</div>
-                <button className="fr-btn" onClick={()=>{signOut();setNavOpen(false);}} style={{background:"transparent",color:C.you,border:"none",cursor:"pointer",fontSize:14,textAlign:"left",padding:"6px 2px"}}>Switch account</button>
+                <div style={{color:C.muted,fontSize:13,padding:"0 2px"}}>Signed in as {profile}</div>
+                <button className="fr-btn" onClick={()=>{signOut();setNavOpen(false);}} style={{justifyContent:"flex-start",background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:15,textAlign:"left",padding:"11px 12px"}}>Sign out</button>
               </div>
             </div>
           </>
         )}
 
-        {error && step!=="analyzing" && (<div style={{background:"rgba(255,106,61,0.12)",border:`1px solid ${C.you}`,color:C.you,padding:12,borderRadius:8,marginTop:18,fontSize:14}}>{error}</div>)}
+        {error && step!=="analyzing" && (<div style={{background:"rgba(255,106,61,0.12)",border:`1px solid ${C.you}`,color:C.you,padding:12,borderRadius:6,marginTop:18,fontSize:14}}>{error}</div>)}
 
         {step==="auth" && (
-          <section className="fr-fade" style={{padding:"60px 0 80px",maxWidth:440,margin:"0 auto"}}>
-            {authPromptMsg && (<div style={{background:"rgba(242,193,78,0.12)",border:`1px solid ${C.legend}`,color:C.legend,padding:12,borderRadius:8,marginBottom:22,fontSize:14,lineHeight:1.5,textAlign:"center"}}>{authPromptMsg}</div>)}
-            <h1 style={{fontFamily:DISPLAY,fontWeight:700,textTransform:"uppercase",fontSize:40,lineHeight:1,margin:"0 0 10px",textAlign:"center"}}>Welcome to <span style={{color:C.legend}}>LegendSports</span></h1>
+          <section style={{padding:"60px 0 80px",maxWidth:440,margin:"0 auto"}}>
+            {authPromptMsg && (<div style={{background:"rgba(242,193,78,0.12)",border:`1px solid ${C.legend}`,color:C.legend,padding:12,borderRadius:6,marginBottom:22,fontSize:14,lineHeight:1.5,textAlign:"center"}}>{authPromptMsg}</div>)}
+            <h1 style={{fontFamily:DISPLAY,fontWeight:700,textTransform:"uppercase",fontSize:34,lineHeight:1.05,margin:"0 0 10px",textAlign:"center"}}>{authForgot?"Reset your password":authMode==="signin"?"Sign in":"Create your account"}</h1>
             <p style={{color:C.muted,textAlign:"center",margin:"0 0 28px",fontSize:15,lineHeight:1.5}}>{
               authTaken ? "This email already has an account." :
               authForgot ? (authSent ? `We sent a password reset link to ${authEmail}. Open it on this device to set a new password.` : "Enter your email and we'll send you a password reset link.") :
               authSent ? (authMode==="signup" ? `We sent a confirmation link to ${authEmail}. Confirm it, then sign in with your password on any device.` : `We emailed a login link to ${authEmail}. Open it on this device to sign in.`) :
-              authMode==="signup" ? "First time here? Enter your email, pick a username, and set a password." :
+              authMode==="signup" ? "Your username is what teammates and coaches see. You can sign in on any device with your email and password." :
               "Enter your email and password to sign in."
             }</p>
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
               {authTaken ? (
-                <button className="fr-btn" onClick={goToSignIn} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>← Go back to sign in</button>
+                <button className="fr-btn" onClick={goToSignIn} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>Back to sign in</button>
               ) : authForgot ? (!authSent ? (<>
                 <Field label="Email"><input type="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&doForgotPassword()}/></Field>
                 {authErr && <div style={{color:C.you,fontSize:13}}>{authErr}</div>}
-                <button className="fr-btn" onClick={doForgotPassword} disabled={authBusy} style={{...btnSolid,justifyContent:"center",opacity:authBusy?0.6:1}}>{authBusy?"Sending…":"Send reset link →"}</button>
-                <button className="fr-btn" onClick={()=>{setAuthForgot(false);setAuthErr("");}} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>← Back to sign in</button>
+                <button className="fr-btn" onClick={doForgotPassword} disabled={authBusy} style={{...btnSolid,justifyContent:"center",opacity:authBusy?0.6:1}}>{authBusy?"Sending…":"Send reset link"}</button>
+                <button className="fr-btn" onClick={()=>{setAuthForgot(false);setAuthErr("");}} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>Back to sign in</button>
               </>) : (<>
                 <div style={{color:C.good,fontSize:14,textAlign:"center"}}>Check your inbox (and spam folder).</div>
-                <button className="fr-btn" onClick={()=>{setAuthForgot(false);setAuthSent(false);setAuthErr("");}} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>← Back to sign in</button>
+                <button className="fr-btn" onClick={()=>{setAuthForgot(false);setAuthSent(false);setAuthErr("");}} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>Back to sign in</button>
               </>)) : !authSent ? (<>
                 <Field label="Email"><input type="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&(authMode==="signup"?doSignUp():doSignIn())}/></Field>
                 {authMode==="signup" && <Field label="Username"><input value={authUsername} onChange={e=>setAuthUsername(e.target.value)} placeholder="e.g. Sai" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&doSignUp()}/></Field>}
@@ -1290,59 +1381,59 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                 <button className="fr-btn" onClick={switchAuthMode} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>{authMode==="signup"?"Already have an account? Sign in":"New here? Create an account"}</button>
               </>) : (<>
                 <div style={{color:C.good,fontSize:14,textAlign:"center"}}>Check your inbox (and spam folder).</div>
-                <button className="fr-btn" onClick={()=>{setAuthSent(false);setAuthErr("");setAuthPassword("");}} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>← Use a different email</button>
+                <button className="fr-btn" onClick={()=>{setAuthSent(false);setAuthErr("");setAuthPassword("");}} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>Use a different email</button>
               </>)}
-              <div style={{color:C.muted,fontSize:11.5,lineHeight:1.5,textAlign:"center"}}>This is a real account (secured by Supabase) — that's what lets teammates on other devices see your team chat.</div>
-              {!authSent && (<button className="fr-btn" onClick={()=>{setAuthPromptMsg("");setStep("home");}} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13,textAlign:"center"}}>← Not now, keep browsing</button>)}
+              <div style={{color:C.muted,fontSize:12,lineHeight:1.5,textAlign:"center"}}>An account keeps your sessions, posts, and team chat in sync across devices.</div>
+              {!authSent && (<button className="fr-btn" onClick={()=>{setAuthPromptMsg("");setStep("home");}} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13,textAlign:"center"}}>Not now</button>)}
             </div>
           </section>
         )}
 
         {step==="resetPassword" && (
-          <section className="fr-fade" style={{padding:"60px 0 80px",maxWidth:440,margin:"0 auto"}}>
-            <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:"0 0 8px",textAlign:"center"}}>Set a new password</h2>
+          <section style={{padding:"60px 0 80px",maxWidth:440,margin:"0 auto"}}>
+            <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:30,margin:"0 0 8px",textAlign:"center"}}>Set a new password</h2>
             <p style={{color:C.muted,textAlign:"center",margin:"0 0 28px",fontSize:15,lineHeight:1.5}}>Choose a new password for your account.</p>
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
               <Field label="New password"><input type="password" value={newPw} onChange={e=>setNewPw(e.target.value)} placeholder="At least 10 characters" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&setPassword()}/></Field>
               <Field label="Confirm password"><input type="password" value={newPw2} onChange={e=>setNewPw2(e.target.value)} placeholder="Type it again" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&setPassword()}/></Field>
               {pwErr && <div style={{color:C.you,fontSize:13}}>{pwErr}</div>}
-              <button className="fr-btn" onClick={setPassword} disabled={pwBusy} style={{...btnSolid,justifyContent:"center",opacity:pwBusy?0.6:1}}>{pwBusy?"Saving…":"Save and continue →"}</button>
+              <button className="fr-btn" onClick={setPassword} disabled={pwBusy} style={{...btnSolid,justifyContent:"center",opacity:pwBusy?0.6:1}}>{pwBusy?"Saving…":"Save and continue"}</button>
               <button className="fr-btn" onClick={signOut} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>Cancel</button>
             </div>
           </section>
         )}
 
         {step==="account" && (
-          <section className="fr-fade" style={{padding:"60px 0 80px",maxWidth:440,margin:"0 auto"}}>
-            <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:"0 0 8px",textAlign:"center"}}>Account</h2>
+          <section style={{padding:"60px 0 80px",maxWidth:440,margin:"0 auto"}}>
+            <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:30,margin:"0 0 8px",textAlign:"center"}}>Account</h2>
             <p style={{color:C.muted,textAlign:"center",margin:"0 0 28px",fontSize:15,lineHeight:1.5}}>Set a password so you can sign in directly on other devices, without waiting on an email link.</p>
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
               <Field label="New password"><input type="password" value={newPw} onChange={e=>setNewPw(e.target.value)} placeholder="At least 10 characters" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&setPassword()}/></Field>
               <Field label="Confirm password"><input type="password" value={newPw2} onChange={e=>setNewPw2(e.target.value)} placeholder="Type it again" style={inputStyle} onKeyDown={e=>e.key==="Enter"&&setPassword()}/></Field>
               {pwErr && <div style={{color:C.you,fontSize:13}}>{pwErr}</div>}
               {pwMsg && <div style={{color:C.good,fontSize:13}}>{pwMsg}</div>}
-              <button className="fr-btn" onClick={setPassword} disabled={pwBusy} style={{...btnSolid,justifyContent:"center",opacity:pwBusy?0.6:1}}>{pwBusy?"Saving…":"Save password →"}</button>
-              <button className="fr-btn" onClick={()=>setStep("home")} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>← Back</button>
+              <button className="fr-btn" onClick={setPassword} disabled={pwBusy} style={{...btnSolid,justifyContent:"center",opacity:pwBusy?0.6:1}}>{pwBusy?"Saving…":"Save password"}</button>
+              <button className="fr-btn" onClick={()=>setStep("home")} style={{background:"transparent",color:C.muted,border:"none",cursor:"pointer",fontSize:13}}>Back</button>
             </div>
           </section>
         )}
 
         {step==="history" && (
-          <section className="fr-fade" style={{padding:"36px 0 80px"}}>
+          <section style={{padding:"36px 0 80px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",flexWrap:"wrap",gap:10,marginBottom:8}}>
-              <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:0}}>Your sessions</h2>
-              <button className="fr-btn" onClick={()=>setStep("home")} style={{...btnSolid,padding:"10px 18px"}}>+ New analysis</button>
+              <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:30,margin:0}}>Your sessions</h2>
+              <button className="fr-btn" onClick={()=>setStep("home")} style={{...btnSolid,padding:"10px 18px"}}><Icon name="plus" size={15}/>New analysis</button>
             </div>
             <p style={{color:C.muted,margin:"0 0 24px",fontSize:15}}>{sessions.length} saved {sessions.length===1?"session":"sessions"} for {profile}.</p>
             {sessions.length===0 ? (
-              <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:30,textAlign:"center",color:C.muted}}>No sessions yet — run your first analysis and it'll show up here.</div>
+              <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:30,textAlign:"center",color:C.muted}}>No sessions yet. Each analysis you run is saved here.</div>
             ) : (
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
                 {sessions.map(s=>(
-                  <div key={s.id} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:"14px 18px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+                  <div key={s.id} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"14px 18px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
                     <div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:30,color:gradeColor(s.grade),minWidth:46,textAlign:"center"}}>{s.grade}</div>
                     <div style={{flex:1,minWidth:160}}>
-                      <div style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:15}}>{s.move} · {s.sport}</div>
+                      <div style={{fontFamily:BODY,fontWeight:600,textTransform:"uppercase",letterSpacing:0.8,fontSize:15}}>{s.move} · {s.sport}</div>
                       <div style={{color:C.muted,fontSize:12.5,marginTop:2}}>vs {s.legend} · {fmtDate(s.date)}</div>
                     </div>
                     <button className="fr-btn" onClick={()=>openSession(s)} style={{background:"transparent",color:C.you,border:`1px solid ${C.you}`,borderRadius:6,padding:"7px 14px",fontSize:13,cursor:"pointer"}}>View</button>
@@ -1357,13 +1448,13 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
         {step==="recruit" && (()=>{ const st=recruitStats(sessions); const F=[["fullname","Full name"],["gradYear","Grad year"],["position","Position"],["height","Height"],["weight","Weight"],["gpa","GPA"],["club","School / club team"],["location","City, State"],["contact","Contact (email/phone)"],["highlight","Highlight video link"]];
           function draftEmail(){ const nm=recruit.fullname||profile; const best=st.best?`my ${st.best.move.toLowerCase()} currently grades ${st.best.grade} on LegendSports motion analysis`:"I've been logging training sessions on LegendSports"; const t=`Coach [Last Name],\n\nMy name is ${nm}${recruit.gradYear?`, ${recruit.gradYear} grad`:""}${recruit.position?`, ${recruit.position}`:""}${recruit.location?` from ${recruit.location}`:""}. ${best}${st.count?`, across ${st.count} tracked training sessions`:""}.\n\n${recruit.highlight?`Highlight film: ${recruit.highlight}\n`:""}${recruit.gpa?`GPA: ${recruit.gpa}\n`:""}${recruit.height?`Height: ${recruit.height}${recruit.weight?`, ${recruit.weight}`:""}\n`:""}\nI'd welcome the chance to share more film and talk about your program.\n\nThank you for your time,\n${nm}\n${recruit.contact||""}`; setCoachEmail(t); }
           return (
-          <section className="fr-fade" style={{padding:"36px 0 80px"}}>
+          <section style={{padding:"36px 0 80px"}}>
             <div className="no-print" style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",flexWrap:"wrap",gap:10,marginBottom:14}}>
-              <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:0}}>Recruiting</h2>
-              <button className="fr-btn" onClick={()=>setStep("home")} style={{...btnSolid,padding:"10px 18px"}}>← Back</button>
+              <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:30,margin:0}}>Recruiting</h2>
+              <button className="fr-btn" onClick={()=>setStep("home")} style={btnBack}><Icon name="back"/>Back</button>
             </div>
             <div className="no-print" style={{display:"flex",gap:8,marginBottom:22}}>
-              {[["mine","My card"],["scout","Coach view"]].map(([k,lab])=>(<button key={k} className="fr-chip" onClick={()=>setRecruitTab(k)} style={{background:recruitTab===k?C.you:"transparent",color:recruitTab===k?C.ink:C.chalk,border:`1px solid ${recruitTab===k?C.you:C.line}`,borderRadius:20,padding:"8px 18px",fontSize:13,cursor:"pointer",fontFamily:DISPLAY,letterSpacing:1,textTransform:"uppercase"}}>{lab}</button>))}
+              {[["mine","My card"],["scout","Coach view"]].map(([k,lab])=>(<button key={k} className="fr-chip" onClick={()=>setRecruitTab(k)} style={{background:recruitTab===k?C.you:"transparent",color:recruitTab===k?C.ink:C.chalk,border:`1px solid ${recruitTab===k?C.you:C.line}`,borderRadius:6,padding:"8px 18px",fontSize:13,cursor:"pointer",fontWeight:600}}>{lab}</button>))}
             </div>
 
             {recruitTab==="mine" ? (<>
@@ -1372,20 +1463,20 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
             </div>
 
             {/* the printable card */}
-            <div id="recruit-card" style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"26px 28px",marginBottom:26}}>
+            <div id="recruit-card" style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"26px 28px",marginBottom:26}}>
               <div style={{display:"flex",alignItems:"center",gap:12,borderBottom:`1px solid ${C.line}`,paddingBottom:16,marginBottom:18}}>
-                <div style={{width:34,height:34,borderRadius:7,background:C.you,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:DISPLAY,fontWeight:700,color:C.ink}}>LS</div>
-                <span style={{fontFamily:DISPLAY,letterSpacing:1.5,textTransform:"uppercase",color:C.muted,fontSize:13}}>LegendSports · Recruiting one-pager</span>
+                <div style={{width:34,height:34,borderRadius:6,background:C.you,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:DISPLAY,fontWeight:700,color:C.ink}}>LS</div>
+                <span style={{fontFamily:BODY,fontWeight:600,letterSpacing:0.8,textTransform:"uppercase",color:C.muted,fontSize:13}}>LegendSports · Recruiting one-pager</span>
               </div>
               <div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:34,textTransform:"uppercase",lineHeight:1.05}}>{recruit.fullname||profile}</div>
-              <div style={{color:C.legend,fontFamily:DISPLAY,letterSpacing:1,textTransform:"uppercase",fontSize:14,marginTop:4}}>{[recruit.position,recruit.gradYear&&`Class of ${recruit.gradYear}`,(st.sports[0]||"")].filter(Boolean).join(" · ")||"Athlete"}</div>
+              <div style={{color:C.legend,fontFamily:BODY,fontWeight:600,letterSpacing:0.8,textTransform:"uppercase",fontSize:14,marginTop:4}}>{[recruit.position,recruit.gradYear&&`Class of ${recruit.gradYear}`,(st.sports[0]||"")].filter(Boolean).join(" · ")||"Athlete"}</div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginTop:18}}>
                 {[["Height",recruit.height],["Weight",recruit.weight],["GPA",recruit.gpa],["School / club",recruit.club],["Location",recruit.location],["Contact",recruit.contact]].filter(([,v])=>v).map(([k,v])=>(
-                  <div key={k}><div style={{fontSize:11,letterSpacing:1,textTransform:"uppercase",color:C.muted,fontFamily:DISPLAY}}>{k}</div><div style={{fontSize:15,marginTop:2,wordBreak:"break-word"}}>{v}</div></div>
+                  <div key={k}><div style={{fontSize:11.5,letterSpacing:0.8,textTransform:"uppercase",color:C.muted,fontFamily:BODY,fontWeight:600}}>{k}</div><div style={{fontSize:15,marginTop:2,wordBreak:"break-word"}}>{v}</div></div>
                 ))}
               </div>
               <div style={{borderTop:`1px solid ${C.line}`,marginTop:20,paddingTop:18}}>
-                <div style={{fontFamily:DISPLAY,letterSpacing:1,textTransform:"uppercase",fontSize:13,color:C.legend,marginBottom:12}}>Training analytics (self-reported)</div>
+                <div style={{fontFamily:BODY,fontWeight:600,letterSpacing:0.8,textTransform:"uppercase",fontSize:13,color:C.legend,marginBottom:12}}>Training analytics (self-reported)</div>
                 {st.count>0 ? (
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:14}}>
                     <div><div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:30}}>{st.count}</div><div style={{color:C.muted,fontSize:12}}>sessions tracked</div></div>
@@ -1393,10 +1484,10 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                     <div><div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:30}}>{st.moves}</div><div style={{color:C.muted,fontSize:12}}>techniques trained</div></div>
                   </div>
                 ) : (<div style={{color:C.muted,fontSize:14}}>Run some analyses and your training grades will appear here.</div>)}
-                {st.recent.length>0 && (<div style={{marginTop:14,display:"flex",flexWrap:"wrap",gap:8}}>{st.recent.map(s=>(<span key={s.id} style={{fontSize:12,border:`1px solid ${C.line}`,borderRadius:14,padding:"4px 10px",color:C.muted}}><b style={{color:gradeColor(s.grade)}}>{s.grade}</b> {s.move}</span>))}</div>)}
+                {st.recent.length>0 && (<div style={{marginTop:14,display:"flex",flexWrap:"wrap",gap:8}}>{st.recent.map(s=>(<span key={s.id} style={{fontSize:12,border:`1px solid ${C.line}`,borderRadius:10,padding:"4px 10px",color:C.muted}}><b style={{color:gradeColor(s.grade)}}>{s.grade}</b> {s.move}</span>))}</div>)}
                 {recruit.highlight && (<div style={{marginTop:14,fontSize:13}}><span style={{color:C.muted}}>Highlight film: </span>{recruit.highlight}</div>)}
               </div>
-              <div style={{color:C.muted,fontSize:10.5,marginTop:16,lineHeight:1.5}}>Grades are from on-device motion analysis and are self-reported by the athlete; they are a training aid, not an official combine measurement.</div>
+              <div style={{color:C.muted,fontSize:12,marginTop:16,lineHeight:1.5}}>Grades are from on-device motion analysis and are self-reported by the athlete; they are a training aid, not an official combine measurement.</div>
             </div>
 
             {/* editor */}
@@ -1404,36 +1495,34 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
               {F.map(([k,label])=>(<Field key={k} label={label}><input value={recruit[k]||""} onChange={e=>setRecruitField(k,e.target.value)} style={inputStyle}/></Field>))}
             </div>
 
-            <div className="no-print" style={{background:C.panel2,border:`1px solid ${C.line}`,borderRadius:14,padding:"20px 22px"}}>
+            <div className="no-print" style={{background:C.panel2,border:`1px solid ${C.line}`,borderRadius:10,padding:"20px 22px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",flexWrap:"wrap",gap:10,marginBottom:12}}>
-                <h3 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:18,margin:0}}>Coach outreach email</h3>
+                <h3 style={{fontFamily:BODY,fontWeight:600,fontSize:18,margin:0}}>Coach outreach email</h3>
                 <div style={{display:"flex",gap:8}}>
-                  <button className="fr-btn" onClick={draftEmail} style={{background:C.legend,color:C.ink,border:"none",borderRadius:6,padding:"8px 14px",fontSize:13,cursor:"pointer",fontFamily:DISPLAY,letterSpacing:1,textTransform:"uppercase"}}>Draft it</button>
+                  <button className="fr-btn" onClick={draftEmail} style={{background:C.legend,color:C.ink,border:"none",borderRadius:6,padding:"8px 14px",fontSize:13,cursor:"pointer",fontWeight:600}}>Draft it</button>
                   {coachEmail && <button className="fr-btn" onClick={()=>{ navigator.clipboard&&navigator.clipboard.writeText(coachEmail); }} style={{background:"transparent",color:C.you,border:`1px solid ${C.you}`,borderRadius:6,padding:"8px 14px",fontSize:13,cursor:"pointer"}}>Copy</button>}
                 </div>
               </div>
               <textarea value={coachEmail} onChange={e=>setCoachEmail(e.target.value)} placeholder="Click “Draft it” to generate a coach intro email from your profile and stats." rows={10} style={inputStyle}/>
             </div>
             </>) : (<>
-            <div style={{background:"rgba(242,193,78,0.1)",border:`1px solid ${C.legend}`,color:C.legend,padding:12,borderRadius:8,marginBottom:18,fontSize:13,lineHeight:1.5}}>
-              Coach view — browse athletes who set up a profile on this device. With a backend this becomes a real recruiting board across every athlete.
-            </div>
+            <p style={{...subtitle,margin:"0 0 18px"}}>Athlete profiles saved on this device, with their best graded sessions.</p>
             <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:18}}>
               <input value={scoutQuery} onChange={e=>setScoutQuery(e.target.value)} placeholder="Search name, position, grad year, city…" style={{...inputStyle,flex:1,minWidth:200}}/>
               <div style={{minWidth:160}}><Select value={scoutSport} onChange={setScoutSport} options={["All",...Object.keys(SPORTS)]}/></div>
             </div>
             {(()=>{ const athletes=Object.entries(loadStore().profiles||{}).map(([name,p])=>({name,recruit:p.recruit||{},stats:recruitStats(p.sessions||[])})); const q=scoutQuery.trim().toLowerCase(); const filtered=athletes.filter(a=>{ const hay=`${a.recruit.fullname||a.name} ${a.recruit.position||""} ${a.recruit.location||""} ${a.recruit.gradYear||""} ${a.stats.sports.join(" ")}`.toLowerCase(); return (!q||hay.includes(q))&&(scoutSport==="All"||a.stats.sports.includes(scoutSport)); });
-              return filtered.length===0 ? (<div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:30,textAlign:"center",color:C.muted}}>{athletes.length===0?"No athlete profiles on this device yet.":"No athletes match your search."}</div>) : (
+              return filtered.length===0 ? (<div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:30,textAlign:"center",color:C.muted}}>{athletes.length===0?"No athlete profiles on this device yet.":"No athletes match your search."}</div>) : (
               <div style={{display:"flex",flexDirection:"column",gap:12}}>
                 {filtered.map(a=>{ const rc=a.recruit, stt=a.stats; return (
-                  <div key={a.name} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:"18px 20px"}}>
+                  <div key={a.name} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"18px 20px"}}>
                     <div style={{display:"flex",justifyContent:"space-between",gap:14,alignItems:"flex-start",flexWrap:"wrap"}}>
                       <div style={{flex:1,minWidth:180}}>
                         <div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:22,textTransform:"uppercase",lineHeight:1.1}}>{rc.fullname||a.name}</div>
-                        <div style={{color:C.legend,fontFamily:DISPLAY,letterSpacing:0.5,textTransform:"uppercase",fontSize:12.5,marginTop:3}}>{[rc.position,rc.gradYear&&`Class of ${rc.gradYear}`,stt.sports[0]].filter(Boolean).join(" · ")||"Athlete"}</div>
+                        <div style={{color:C.legend,fontFamily:BODY,fontWeight:600,letterSpacing:0.8,textTransform:"uppercase",fontSize:12.5,marginTop:3}}>{[rc.position,rc.gradYear&&`Class of ${rc.gradYear}`,stt.sports[0]].filter(Boolean).join(" · ")||"Athlete"}</div>
                         <div style={{color:C.muted,fontSize:13,marginTop:6}}>{[rc.location,rc.height&&`${rc.height}${rc.weight?` / ${rc.weight}`:""}`,rc.gpa&&`GPA ${rc.gpa}`].filter(Boolean).join(" · ")||"No details added"}</div>
                       </div>
-                      {stt.best && (<div style={{textAlign:"center",minWidth:64}}><div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:34,color:gradeColor(stt.best.grade),lineHeight:1}}>{stt.best.grade}</div><div style={{color:C.muted,fontSize:11,marginTop:2}}>top · {stt.best.move}</div></div>)}
+                      {stt.best && (<div style={{textAlign:"center",minWidth:64}}><div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:34,color:gradeColor(stt.best.grade),lineHeight:1}}>{stt.best.grade}</div><div style={{color:C.muted,fontSize:12,marginTop:2}}>top · {stt.best.move}</div></div>)}
                     </div>
                     <div style={{display:"flex",gap:14,flexWrap:"wrap",marginTop:12,color:C.muted,fontSize:12.5}}>
                       <span>{stt.count} sessions</span><span>{stt.moves} techniques</span>
@@ -1449,27 +1538,25 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
             ); })()}
             </>)}
 
-            <div className="no-print" style={{marginTop:20}}><button className="fr-btn" onClick={()=>setStep("home")} style={{...btnSolid,padding:"12px 22px"}}>← Back</button></div>
+            <div className="no-print" style={{marginTop:20}}><button className="fr-btn" onClick={()=>setStep("home")} style={btnBack}><Icon name="back"/>Back</button></div>
           </section>
         ); })()}
 
         {step==="community" && (
-          <section className="fr-fade" style={{padding:"36px 0 80px"}}>
+          <section style={{padding:"36px 0 80px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",flexWrap:"wrap",gap:10,marginBottom:8}}>
-              <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:0}}>Community Q&amp;A</h2>
-              <button className="fr-btn" onClick={()=>setStep("home")} style={{...btnSolid,padding:"10px 18px"}}>← Back</button>
+              <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:30,margin:0}}>Community Q&amp;A</h2>
+              <button className="fr-btn" onClick={()=>setStep("home")} style={btnBack}><Icon name="back"/>Back</button>
             </div>
-            <div style={{background:"rgba(123,196,127,0.1)",border:`1px solid ${C.good}`,color:C.good,padding:12,borderRadius:8,marginBottom:22,fontSize:13,lineHeight:1.5}}>
-              Live — questions and answers are stored in Supabase and visible to everyone.
-            </div>
+            <p style={subtitle}>Ask about technique, training, or recruiting, and answer questions from other athletes.</p>
 
-            <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"20px 22px",marginBottom:24}}>
-              <h3 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:18,margin:"0 0 14px"}}>Ask a question</h3>
+            <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"20px 22px",marginBottom:24}}>
+              <h3 style={{fontFamily:BODY,fontWeight:600,fontSize:18,margin:"0 0 14px"}}>Ask a question</h3>
               <div style={{display:"flex",flexDirection:"column",gap:12}}>
                 <input value={qTitle} onChange={e=>setQTitle(e.target.value)} placeholder="Your question (e.g. How do I stop my elbow drifting on jump shots?)" style={inputStyle}/>
                 <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
                   <div style={{minWidth:180,flex:"0 0 auto"}}><Select value={qSport} onChange={setQSport} options={["General",...Object.keys(SPORTS)]}/></div>
-                  <span style={{color:C.muted,fontSize:12}}>posting as {profile||"Guest"}{!profile && !guestUsage.message && " · first post is free"}</span>
+                  <span style={{color:C.muted,fontSize:12}}>Posting as {profile||"Guest"}{!profile && !guestUsage.message && " · first post is free"}</span>
                 </div>
                 <textarea value={qBody} onChange={e=>setQBody(e.target.value)} placeholder="Add any detail (optional)" rows={3} style={inputStyle}/>
                 {communityErr && <div style={{color:C.you,fontSize:13}}>{communityErr}</div>}
@@ -1478,11 +1565,11 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
             </div>
 
             {community.length===0 ? (
-              <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:30,textAlign:"center",color:C.muted}}>No questions yet — be the first to ask.</div>
+              <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:30,textAlign:"center",color:C.muted}}>No questions yet, be the first to ask.</div>
             ) : (
               <div style={{display:"flex",flexDirection:"column",gap:12}}>
                 {community.map(q=>(
-                  <div key={q.id} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:"16px 20px"}}>
+                  <div key={q.id} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"16px 20px"}}>
                     <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"flex-start"}}>
                       <div style={{flex:1,cursor:"pointer"}} onClick={()=>setOpenQ(openQ===q.id?null:q.id)}>
                         <div style={{fontSize:16,fontWeight:600,lineHeight:1.4}}>{q.title}</div>
@@ -1494,9 +1581,9 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                       <div style={{marginTop:14,borderTop:`1px solid ${C.line}`,paddingTop:14}}>
                         {q.body && <p style={{margin:"0 0 14px",fontSize:14.5,lineHeight:1.55,color:C.chalk}}>{q.body}</p>}
                         {(q.answers||[]).map(a=>(
-                          <div key={a.id} style={{background:C.panel2,borderRadius:8,padding:"10px 14px",marginBottom:8}}>
+                          <div key={a.id} style={{background:C.panel2,borderRadius:6,padding:"10px 14px",marginBottom:8}}>
                             <div style={{fontSize:14,lineHeight:1.5}}>{a.body}</div>
-                            <div style={{color:C.muted,fontSize:11.5,marginTop:4}}>{a.author} · {fmtDate(a.date)}</div>
+                            <div style={{color:C.muted,fontSize:12,marginTop:4}}>{a.author} · {fmtDate(a.date)}</div>
                           </div>
                         ))}
                         <div style={{display:"flex",gap:8,marginTop:10,alignItems:"flex-start"}}>
@@ -1513,33 +1600,31 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
         )}
 
         {step==="feed" && (
-          <section className="fr-fade" style={{padding:"36px 0 80px"}}>
+          <section style={{padding:"36px 0 80px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",flexWrap:"wrap",gap:10,marginBottom:8}}>
-              <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:0}}>Highlights feed</h2>
+              <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:30,margin:0}}>Highlights feed</h2>
               <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-                <button className="fr-btn" onClick={()=>{setShortsIndex(0);setStep("shorts");}} style={{...btnSolid,padding:"10px 18px",background:C.legend}}>▶ Shorts</button>
-                <button className="fr-btn" onClick={()=>setStep("home")} style={{...btnSolid,padding:"10px 18px"}}>← Back</button>
+                <button className="fr-btn" onClick={()=>{setShortsIndex(0);setStep("shorts");}} style={{...btnGhost,padding:"9px 16px",fontSize:14}}><Icon name="play" size={14}/>Watch Shorts</button>
+                <button className="fr-btn" onClick={()=>setStep("home")} style={btnBack}><Icon name="back"/>Back</button>
               </div>
             </div>
-            <div style={{background:"rgba(123,196,127,0.1)",border:`1px solid ${C.good}`,color:C.good,padding:12,borderRadius:8,marginBottom:22,fontSize:13,lineHeight:1.5}}>
-              Live — clips (links and recordings) are stored in Supabase and visible to everyone on any device.
-            </div>
+            <p style={subtitle}>Game film and training clips from athletes on LegendSports. Post a link or record one here.</p>
 
-            <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"20px 22px",marginBottom:20}}>
-              <h3 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:18,margin:"0 0 14px"}}>Post a clip</h3>
+            <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"20px 22px",marginBottom:20}}>
+              <h3 style={{fontFamily:BODY,fontWeight:600,fontSize:18,margin:"0 0 14px"}}>Post a clip</h3>
               <div style={{display:"flex",gap:8,marginBottom:14}}>
-                {[["link","Post a link"],["record","Record a clip"]].map(([k,lab])=>(<button key={k} className="fr-chip" onClick={()=>setFeedMode(k)} style={{background:feedMode===k?C.you:"transparent",color:feedMode===k?C.ink:C.chalk,border:`1px solid ${feedMode===k?C.you:C.line}`,borderRadius:20,padding:"7px 16px",fontSize:13,cursor:"pointer"}}>{lab}</button>))}
+                {[["link","Post a link"],["record","Record a clip"]].map(([k,lab])=>(<button key={k} className="fr-chip" onClick={()=>setFeedMode(k)} style={{background:feedMode===k?C.you:"transparent",color:feedMode===k?C.ink:C.chalk,border:`1px solid ${feedMode===k?C.you:C.line}`,borderRadius:6,padding:"7px 16px",fontSize:13,cursor:"pointer"}}>{lab}</button>))}
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:12}}>
                 <input value={fTitle} onChange={e=>setFTitle(e.target.value)} placeholder="Title (e.g. Game-winner vs Lincoln)" style={inputStyle}/>
                 {feedMode==="link" ? (
-                  <input value={fLink} onChange={e=>setFLink(e.target.value)} placeholder="Video link — YouTube URL or direct .mp4/.webm link" style={inputStyle}/>
+                  <input value={fLink} onChange={e=>setFLink(e.target.value)} placeholder="Video link, YouTube URL or direct .mp4/.webm link" style={inputStyle}/>
                 ) : (
                   <div>
                     {!recordedUrl ? (
                       <div style={{background:"#000",border:`1px solid ${C.line}`,borderRadius:10,overflow:"hidden",position:"relative"}}>
                         <video ref={feedLiveRef} muted playsInline autoPlay style={{width:"100%",maxHeight:320,objectFit:"contain",background:"#000",display:"block",transform:mirror?"scaleX(-1)":"none"}}/>
-                        {feedRecording && <div style={{position:"absolute",top:12,left:12,display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.55)",padding:"5px 11px",borderRadius:20,fontFamily:DISPLAY,letterSpacing:1,fontSize:13}}><span style={{width:9,height:9,borderRadius:"50%",background:C.you,animation:"frblink 1s steps(2,start) infinite"}}/>REC {String(Math.floor(feedRecSecs/60)).padStart(2,"0")}:{String(feedRecSecs%60).padStart(2,"0")} / {fFormat==="Short-form"?"2:30":"30:00"}</div>}
+                        {feedRecording && <div style={{position:"absolute",top:12,left:12,display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.55)",padding:"5px 11px",borderRadius:6,fontFamily:DISPLAY,letterSpacing:1,fontSize:13}}><span style={{width:9,height:9,borderRadius:"50%",background:C.you,animation:"frblink 1s steps(2,start) infinite"}}/>REC {String(Math.floor(feedRecSecs/60)).padStart(2,"0")}:{String(feedRecSecs%60).padStart(2,"0")} / {fFormat==="Short-form"?"2:30":"30:00"}</div>}
                       </div>
                     ) : (
                       <video src={recordedUrl} controls style={{width:"100%",borderRadius:10,maxHeight:320,background:"#000",display:"block"}}/>
@@ -1548,29 +1633,29 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                     <div style={{display:"flex",gap:8,marginTop:10,flexWrap:"wrap"}}>
                       {!recordedUrl ? (
                         !feedRecording
-                          ? <button className="fr-btn" onClick={beginFeedRec} disabled={!!feedRecErr} style={{background:feedRecErr?C.panel2:C.you,color:feedRecErr?C.muted:C.ink,border:"none",borderRadius:8,padding:"10px 18px",cursor:feedRecErr?"not-allowed":"pointer",fontFamily:DISPLAY,letterSpacing:1,textTransform:"uppercase"}}>● Start recording</button>
-                          : <button className="fr-btn" onClick={stopFeedRec} style={{background:C.chalk,color:C.ink,border:"none",borderRadius:8,padding:"10px 18px",cursor:"pointer",fontFamily:DISPLAY,letterSpacing:1,textTransform:"uppercase"}}>■ Stop</button>
+                          ? <button className="fr-btn" onClick={beginFeedRec} disabled={!!feedRecErr} style={{background:feedRecErr?C.panel2:C.you,color:feedRecErr?C.muted:C.ink,border:"none",borderRadius:6,padding:"10px 18px",cursor:feedRecErr?"not-allowed":"pointer",fontWeight:600}}><Icon name="rec" size={12}/>Start recording</button>
+                          : <button className="fr-btn" onClick={stopFeedRec} style={{background:C.chalk,color:C.ink,border:"none",borderRadius:6,padding:"10px 18px",cursor:"pointer",fontWeight:600}}><Icon name="stop" size={12}/>Stop</button>
                       ) : (
-                        <button className="fr-btn" onClick={()=>{ if(recordedUrl)URL.revokeObjectURL(recordedUrl); feedBlobRef.current=null; setRecordedUrl(""); }} style={{background:"transparent",color:C.you,border:`1px solid ${C.you}`,borderRadius:8,padding:"10px 18px",cursor:"pointer"}}>Re-record</button>
+                        <button className="fr-btn" onClick={()=>{ if(recordedUrl)URL.revokeObjectURL(recordedUrl); feedBlobRef.current=null; setRecordedUrl(""); }} style={{background:"transparent",color:C.you,border:`1px solid ${C.you}`,borderRadius:6,padding:"10px 18px",cursor:"pointer"}}>Re-record</button>
                       )}
-                        <button className="fr-btn" onClick={()=>setMirror(m=>!m)} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,borderRadius:8,padding:"10px 16px",cursor:"pointer",fontSize:13}}>⇋ Mirror: {mirror?"on":"off"}</button>
+                        <button className="fr-btn" onClick={()=>setMirror(m=>!m)} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,borderRadius:6,padding:"10px 16px",cursor:"pointer",fontSize:13}}><Icon name="flip" size={15}/>Mirror {mirror?"on":"off"}</button>
                     </div>
                   </div>
                 )}
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                  {["Short-form","Long-form"].map(x=>(<button key={x} className="fr-chip" onClick={()=>setFFormat(x)} style={{background:fFormat===x?C.you:"transparent",color:fFormat===x?C.ink:C.chalk,border:`1px solid ${fFormat===x?C.you:C.line}`,borderRadius:20,padding:"7px 16px",fontSize:13,cursor:"pointer"}}>{x}</button>))}
+                  {["Short-form","Long-form"].map(x=>(<button key={x} className="fr-chip" onClick={()=>setFFormat(x)} style={{background:fFormat===x?C.you:"transparent",color:fFormat===x?C.ink:C.chalk,border:`1px solid ${fFormat===x?C.you:C.line}`,borderRadius:6,padding:"7px 16px",fontSize:13,cursor:"pointer"}}>{x}</button>))}
                 </div>
-                <div style={{color:C.muted,fontSize:11.5,lineHeight:1.5,marginTop:-2}}>Short-form caps at 2:30, long-form at 30:00. Recordings stop automatically at the limit; for links, length follows the source platform.</div>
+                <div style={{color:C.muted,fontSize:12,lineHeight:1.5,marginTop:-2}}>Short-form caps at 2:30, long-form at 30:00. Recordings stop automatically at the limit; for links, length follows the source platform.</div>
                 <div>
-                  <div style={{fontSize:12,letterSpacing:1,textTransform:"uppercase",color:C.muted,marginBottom:8,fontFamily:DISPLAY}}>Reference clip (optional)</div>
+                  <div style={{fontSize:12,letterSpacing:0.8,textTransform:"uppercase",color:C.muted,marginBottom:8,fontFamily:BODY,fontWeight:600}}>Reference clip (optional)</div>
                   <input value={fRefLink} onChange={e=>setFRefLink(e.target.value)} placeholder="Paste a YouTube, TikTok, or Facebook link to compare against" style={inputStyle}/>
-                  <div style={{color:C.muted,fontSize:11.5,lineHeight:1.5,marginTop:6}}>Shown as a link on your post so viewers can watch what you're referencing.</div>
+                  <div style={{color:C.muted,fontSize:12,lineHeight:1.5,marginTop:6}}>Shown as a link on your post so viewers can watch what you're referencing.</div>
                 </div>
                 <div>
-                  <div style={{fontSize:12,letterSpacing:1,textTransform:"uppercase",color:C.muted,marginBottom:8,fontFamily:DISPLAY}}>Thumbnail (optional)</div>
+                  <div style={{fontSize:12,letterSpacing:0.8,textTransform:"uppercase",color:C.muted,marginBottom:8,fontFamily:BODY,fontWeight:600}}>Thumbnail (optional)</div>
                   {fThumbPreview ? (
                     <div style={{display:"flex",alignItems:"center",gap:12}}>
-                      <img src={fThumbPreview} alt="" style={{width:120,aspectRatio:"16/9",objectFit:"cover",borderRadius:8,background:"#000"}}/>
+                      <img src={fThumbPreview} alt="" style={{width:120,aspectRatio:"16/9",objectFit:"cover",borderRadius:6,background:"#000"}}/>
                       <button className="fr-btn" onClick={clearThumbFile} style={{background:"transparent",color:C.you,border:`1px solid ${C.you}`,borderRadius:6,padding:"8px 12px",fontSize:13,cursor:"pointer"}}>Remove</button>
                     </div>
                   ) : (
@@ -1578,7 +1663,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                   )}
                 </div>
                 <textarea value={fDesc} onChange={e=>setFDesc(e.target.value)} placeholder="Caption (optional)" rows={2} style={inputStyle}/>
-                {!profile && <div style={{color:C.muted,fontSize:12}}>posting as Guest{!guestUsage.reel && " · first reel is free"}</div>}
+                {!profile && <div style={{color:C.muted,fontSize:12}}>Posting as Guest{!guestUsage.reel && " · first reel is free"}</div>}
                 {feedPostErr && <div style={{color:C.you,fontSize:13}}>{feedPostErr}</div>}
                 <div><button className="fr-btn" onClick={postClip} style={{...btnSolid,padding:"11px 22px"}}>Post clip</button></div>
               </div>
@@ -1586,7 +1671,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
 
             <input value={feedQuery} onChange={e=>setFeedQuery(e.target.value)} placeholder="Search clips by title, caption, or creator…" style={{...inputStyle,marginBottom:14}}/>
             <div style={{display:"flex",gap:8,marginBottom:16}}>
-              {["All","Short-form","Long-form"].map(x=>(<button key={x} className="fr-chip" onClick={()=>setFeedFilter(x)} style={{background:feedFilter===x?C.panel2:"transparent",color:feedFilter===x?C.chalk:C.muted,border:`1px solid ${C.line}`,borderRadius:20,padding:"6px 14px",fontSize:13,cursor:"pointer"}}>{x}</button>))}
+              {["All","Short-form","Long-form"].map(x=>(<button key={x} className="fr-chip" onClick={()=>setFeedFilter(x)} style={{background:feedFilter===x?C.panel2:"transparent",color:feedFilter===x?C.chalk:C.muted,border:`1px solid ${C.line}`,borderRadius:6,padding:"6px 14px",fontSize:13,cursor:"pointer"}}>{x}</button>))}
             </div>
 
             {(()=>{
@@ -1597,14 +1682,14 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
               return (<>
                 {creators.length>0 && (
                   <div style={{marginBottom:16}}>
-                    <div style={{color:C.muted,fontSize:12,textTransform:"uppercase",letterSpacing:1,fontFamily:DISPLAY,marginBottom:8}}>Creators</div>
+                    <div style={{color:C.muted,fontSize:12,textTransform:"uppercase",letterSpacing:0.8,fontFamily:BODY,fontWeight:600,marginBottom:8}}>Creators</div>
                     <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                      {creators.map(a=>(<button key={a} className="fr-chip" onClick={()=>goToCreator(a)} style={{background:"transparent",color:C.legend,border:`1px solid ${C.legend}`,borderRadius:20,padding:"7px 14px",fontSize:13,cursor:"pointer"}}>{a}</button>))}
+                      {creators.map(a=>(<button key={a} className="fr-chip" onClick={()=>goToCreator(a)} style={{background:"transparent",color:C.legend,border:`1px solid ${C.legend}`,borderRadius:6,padding:"7px 14px",fontSize:13,cursor:"pointer"}}>{a}</button>))}
                     </div>
                   </div>
                 )}
                 {list.length===0 ? (
-                  <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:30,textAlign:"center",color:C.muted}}>No clips yet — post the first one.</div>
+                  <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:30,textAlign:"center",color:C.muted}}>No clips yet, post the first one.</div>
                 ) : (
                   <div className="fr-grid3">{list.map(p=>clipCard(p))}</div>
                 )}
@@ -1614,14 +1699,14 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
         )}
 
         {step==="creator" && (()=>{ const vids=feed.filter(p=>p.author===viewingCreator); return (
-          <section className="fr-fade" style={{padding:"36px 0 80px"}}>
+          <section style={{padding:"36px 0 80px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",flexWrap:"wrap",gap:10,marginBottom:8}}>
-              <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:0}}>{viewingCreator}</h2>
-              <button className="fr-btn" onClick={()=>setStep("feed")} style={{...btnSolid,padding:"10px 18px"}}>← Back to feed</button>
+              <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:30,margin:0}}>{viewingCreator}</h2>
+              <button className="fr-btn" onClick={()=>setStep("feed")} style={btnBack}><Icon name="back"/>Back to feed</button>
             </div>
             <div style={{color:C.muted,fontSize:14,marginBottom:22}}>{vids.length} {vids.length===1?"video":"videos"}</div>
             {vids.length===0 ? (
-              <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:30,textAlign:"center",color:C.muted}}>No videos from this creator yet.</div>
+              <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:30,textAlign:"center",color:C.muted}}>No videos from this creator yet.</div>
             ) : (
               <div className="fr-grid3">{vids.map(p=>clipCard(p))}</div>
             )}
@@ -1632,9 +1717,9 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
           const shorts=[...DEMO_SHORTS,...fypOrder(feed)];
           return (
             <div style={{position:"fixed",inset:0,background:"#000",zIndex:500}}>
-              <button className="fr-btn" onClick={()=>setStep("feed")} style={{position:"absolute",top:16,left:16,zIndex:10,background:"rgba(0,0,0,0.55)",color:C.chalk,border:`1px solid ${C.line}`,borderRadius:20,padding:"8px 16px",cursor:"pointer",fontSize:13}}>← Feed</button>
+              <button className="fr-btn" onClick={()=>setStep("feed")} style={{position:"absolute",top:16,left:16,zIndex:10,background:"rgba(0,0,0,0.55)",color:C.chalk,border:`1px solid ${C.line}`,borderRadius:6,padding:"8px 16px",cursor:"pointer",fontSize:14}}><Icon name="back"/>Feed</button>
               {shorts.length===0 ? (
-                <div style={{color:C.muted,display:"flex",alignItems:"center",justifyContent:"center",height:"100%",fontSize:15,textAlign:"center",padding:"0 30px"}}>No clips yet — post one.</div>
+                <div style={{color:C.muted,display:"flex",alignItems:"center",justifyContent:"center",height:"100%",fontSize:15,textAlign:"center",padding:"0 30px"}}>No clips yet, post one.</div>
               ) : (
                 <div onScroll={handleShortsScroll} style={{height:"100%",overflowY:"auto",scrollSnapType:"y mandatory"}}>
                   {shorts.map((p,i)=>{
@@ -1644,9 +1729,9 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                     return (
                       <div key={p.id} style={{height:"100%",scrollSnapAlign:"start",position:"relative",display:"flex",alignItems:"center",justifyContent:"center",background:"#000"}}>
                         {p.isDemo ? (
-                          <div style={{width:"100%",height:"100%",background:p.bg,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
-                            <span style={{fontSize:96}}>{p.emoji}</span>
-                            <span style={{position:"absolute",top:16,right:16,background:"rgba(0,0,0,0.4)",color:"#fff",fontSize:11,letterSpacing:1,textTransform:"uppercase",fontFamily:DISPLAY,padding:"4px 10px",borderRadius:14}}>Demo</span>
+                          <div style={{width:"100%",height:"100%",background:"#141813",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",color:"rgba(243,240,228,0.35)"}}>
+                            <SportGlyph name={p.sport} size={96}/>
+                            <span style={{position:"absolute",top:16,right:16,...badge}}>Sample</span>
                           </div>
                         ) : yt ? (
                           isLong ? (
@@ -1665,13 +1750,13 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                           {p.desc && <div style={{fontSize:13,marginTop:2,opacity:0.85}}>{p.desc}</div>}
                           {p.refLink && <div style={{marginTop:8,pointerEvents:"auto"}}><RefClipBadge link={p.refLink} style={{background:"rgba(0,0,0,0.4)"}}/></div>}
                         </div>
-                        {!p.isDemo && <button onClick={()=>setOpenClip(openClip===p.id?null:p.id)} style={{position:"absolute",right:14,bottom:180,background:"rgba(255,255,255,0.15)",border:"none",borderRadius:"50%",width:48,height:48,color:"#fff",fontSize:20,cursor:"pointer",zIndex:20}}>💬<div style={{fontSize:11,marginTop:-2}}>{comments.length}</div></button>}
-                        {!p.isDemo && p.author===profile && <button onClick={()=>deleteClip(p.id)} title="Delete this clip" style={{position:"absolute",right:14,bottom:242,background:"rgba(255,255,255,0.15)",border:"none",borderRadius:"50%",width:48,height:48,color:"#fff",fontSize:18,cursor:"pointer",zIndex:20}}>🗑</button>}
+                        {!p.isDemo && <button onClick={()=>setOpenClip(openClip===p.id?null:p.id)} style={{position:"absolute",right:14,bottom:180,background:"rgba(255,255,255,0.15)",border:"none",borderRadius:"50%",width:52,height:52,color:"#fff",cursor:"pointer",zIndex:20,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2}} aria-label="Comments"><Icon name="comment" size={20}/><div style={{fontSize:11,fontWeight:600}}>{comments.length}</div></button>}
+                        {!p.isDemo && p.author===profile && <button onClick={()=>deleteClip(p.id)} title="Delete this clip" style={{position:"absolute",right:14,bottom:246,background:"rgba(255,255,255,0.15)",border:"none",borderRadius:"50%",width:52,height:52,color:"#fff",cursor:"pointer",zIndex:20,display:"flex",alignItems:"center",justifyContent:"center"}} aria-label="Delete this clip"><Icon name="trash" size={20}/></button>}
                         {!p.isDemo && openClip===p.id && (
                           <div style={{position:"absolute",left:0,right:0,bottom:0,maxHeight:"40%",background:"rgba(10,10,10,0.95)",borderTopLeftRadius:18,borderTopRightRadius:18,padding:16,overflowY:"auto",boxSizing:"border-box"}}>
                             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                              <div style={{color:C.chalk,fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:14}}>Comments</div>
-                              <button className="fr-btn" onClick={()=>setOpenClip(null)} style={{background:"transparent",border:"none",color:C.muted,fontSize:20,cursor:"pointer",lineHeight:1}}>×</button>
+                              <div style={{color:C.chalk,fontFamily:BODY,fontWeight:600,textTransform:"uppercase",letterSpacing:0.8,fontSize:14}}>Comments</div>
+                              <button className="fr-btn" onClick={()=>setOpenClip(null)} aria-label="Close comments" style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",padding:4}}><Icon name="close" size={18}/></button>
                             </div>
                             {renderComments(p.id)}
                           </div>
@@ -1686,31 +1771,31 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
         })()}
 
         {step==="feedback" && (
-          <section className="fr-fade" style={{padding:"36px 0 80px",maxWidth:620}}>
+          <section style={{padding:"36px 0 80px",maxWidth:620}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",flexWrap:"wrap",gap:10,marginBottom:8}}>
-              <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:0}}>Send feedback</h2>
-              <button className="fr-btn" onClick={()=>setStep("home")} style={{...btnSolid,padding:"10px 18px"}}>← Back</button>
+              <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:30,margin:0}}>Send feedback</h2>
+              <button className="fr-btn" onClick={()=>setStep("home")} style={btnBack}><Icon name="back"/>Back</button>
             </div>
-            <p style={{color:C.muted,margin:"0 0 22px",fontSize:15,lineHeight:1.5}}>Tell us what's working, what's broken, or what you'd love to see. {DEV_EMAIL?"Submitting opens a pre-filled email to the team, and it's also saved to your account.":"Saved to your account — set a developer email in the file to have submissions emailed to you too."}</p>
-            <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"20px 22px",marginBottom:20}}>
+            <p style={{color:C.muted,margin:"0 0 22px",fontSize:15,lineHeight:1.5}}>Report a bug, suggest a feature, or tell us what's working. Every submission is read.</p>
+            <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"20px 22px",marginBottom:20}}>
               <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
-                {["Bug","Idea","Praise","Other"].map(x=>(<button key={x} className="fr-chip" onClick={()=>setFbCat(x)} style={{background:fbCat===x?C.you:"transparent",color:fbCat===x?C.ink:C.chalk,border:`1px solid ${fbCat===x?C.you:C.line}`,borderRadius:20,padding:"7px 16px",fontSize:13,cursor:"pointer"}}>{x}</button>))}
+                {["Bug","Idea","Praise","Other"].map(x=>(<button key={x} className="fr-chip" onClick={()=>setFbCat(x)} style={{background:fbCat===x?C.you:"transparent",color:fbCat===x?C.ink:C.chalk,border:`1px solid ${fbCat===x?C.you:C.line}`,borderRadius:6,padding:"7px 16px",fontSize:13,cursor:"pointer"}}>{x}</button>))}
               </div>
               <textarea value={fbMsg} onChange={e=>{setFbMsg(e.target.value);setFbSent(false);}} placeholder="Your feedback…" rows={5} style={inputStyle}/>
               <div style={{marginTop:14,display:"flex",alignItems:"center",gap:14}}>
                 <button className="fr-btn" onClick={submitFeedback} style={{...btnSolid,padding:"11px 24px"}}>Submit</button>
-                {fbSent && <span style={{color:C.good,fontSize:14}}>✓ Thanks — your feedback was recorded.</span>}
+                {fbSent && <span style={{color:C.good,fontSize:14,display:"inline-flex",alignItems:"center",gap:6}}><Icon name="check"/>Thanks. Your feedback was saved.</span>}
                 {feedbackErr && <span style={{color:C.you,fontSize:13}}>{feedbackErr}</span>}
               </div>
             </div>
             {feedback.length>0 && (
               <div>
-                <div style={{fontSize:12,letterSpacing:1,textTransform:"uppercase",color:C.muted,marginBottom:10,fontFamily:DISPLAY}}>Recent submissions</div>
+                <div style={{fontSize:12,letterSpacing:0.8,textTransform:"uppercase",color:C.muted,marginBottom:10,fontFamily:BODY,fontWeight:600}}>Recent submissions</div>
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {feedback.slice(0,8).map(f=>(
                     <div key={f.id} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"12px 16px"}}>
                       <div style={{fontSize:14,lineHeight:1.5}}>{f.msg}</div>
-                      <div style={{color:C.muted,fontSize:11.5,marginTop:4}}><span style={{color:C.legend}}>{f.cat}</span> · {f.author} · {fmtDate(f.date)}</div>
+                      <div style={{color:C.muted,fontSize:12,marginTop:4}}><span style={{color:C.legend}}>{f.cat}</span> · {f.author} · {fmtDate(f.date)}</div>
                     </div>
                   ))}
                 </div>
@@ -1720,19 +1805,17 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
         )}
 
         {step==="teams" && (
-          <section className="fr-fade" style={{padding:"36px 0 80px"}}>
+          <section style={{padding:"36px 0 80px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",flexWrap:"wrap",gap:10,marginBottom:8}}>
-              <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:0}}>Teams</h2>
-              <button className="fr-btn" onClick={()=>setStep("home")} style={{...btnSolid,padding:"10px 18px"}}>← Back</button>
+              <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:30,margin:0}}>Teams</h2>
+              <button className="fr-btn" onClick={()=>setStep("home")} style={btnBack}><Icon name="back"/>Back</button>
             </div>
-            <div style={{background:"rgba(123,196,127,0.1)",border:`1px solid ${C.good}`,color:C.good,padding:12,borderRadius:8,marginBottom:22,fontSize:13,lineHeight:1.5}}>
-              Live — teams and chat are stored in Supabase and sync instantly to teammates on any device.
-            </div>
+            <p style={subtitle}>Create a team, share its code with teammates, and keep your training chat in one place.</p>
 
             {!openTeam ? (<>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:16,marginBottom:24}}>
-                <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"18px 20px"}}>
-                  <h3 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:17,margin:"0 0 12px"}}>Create a team</h3>
+                <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"18px 20px"}}>
+                  <h3 style={{fontFamily:BODY,fontWeight:600,fontSize:18,margin:"0 0 12px"}}>Create a team</h3>
                   <div style={{display:"flex",flexDirection:"column",gap:10}}>
                     <input value={teamName} onChange={e=>setTeamName(e.target.value)} placeholder="Team name" style={inputStyle}/>
                     <Select value={teamSport} onChange={setTeamSport} options={[...Object.keys(SPORTS),"Other"]}/>
@@ -1740,8 +1823,8 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                     <button className="fr-btn" onClick={createTeam} style={{...btnSolid,padding:"11px 18px"}}>Create</button>
                   </div>
                 </div>
-                <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"18px 20px"}}>
-                  <h3 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:17,margin:"0 0 12px"}}>Join a team</h3>
+                <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"18px 20px"}}>
+                  <h3 style={{fontFamily:BODY,fontWeight:600,fontSize:18,margin:"0 0 12px"}}>Join a team</h3>
                   <div style={{display:"flex",flexDirection:"column",gap:10}}>
                     <input value={joinCode} onChange={e=>setJoinCode(e.target.value)} placeholder="Enter team code (e.g. 7QK2P)" style={inputStyle}/>
                     <button className="fr-btn" onClick={joinTeam} style={{...btnSolid,padding:"11px 18px"}}>Join</button>
@@ -1750,13 +1833,13 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                 </div>
               </div>
 
-              <div style={{fontSize:12,letterSpacing:1,textTransform:"uppercase",color:C.muted,marginBottom:10,fontFamily:DISPLAY}}>My teams</div>
+              <div style={{fontSize:12,letterSpacing:0.8,textTransform:"uppercase",color:C.muted,marginBottom:10,fontFamily:BODY,fontWeight:600}}>My teams</div>
               {teams.filter(t=>(t.members||[]).includes(profile)).length===0 ? (
-                <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:30,textAlign:"center",color:C.muted}}>You're not on a team yet — create one or join with a code.</div>
+                <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:30,textAlign:"center",color:C.muted}}>You're not on a team yet, create one or join with a code.</div>
               ) : (
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
                   {teams.filter(t=>(t.members||[]).includes(profile)).map(t=>(
-                    <div key={t.id} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:"14px 18px",display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
+                    <div key={t.id} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"14px 18px",display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
                       <div style={{flex:1,minWidth:160}}>
                         <div style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:16}}>{t.name}</div>
                         <div style={{color:C.muted,fontSize:12.5,marginTop:2}}><span style={{color:C.legend}}>{t.sport}</span> · {(t.members||[]).length} {(t.members||[]).length===1?"member":"members"} · code <b style={{color:C.chalk}}>{t.code}</b></div>
@@ -1769,21 +1852,21 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
             </>) : (()=>{ const t=teams.find(x=>x.id===openTeam); if(!t) return <div style={{color:C.muted}}>Team not found. <button onClick={()=>setOpenTeam(null)} style={{background:"none",border:"none",color:C.you,cursor:"pointer"}}>Back</button></div>;
               return (
               <div>
-                <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"16px 20px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+                <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"16px 20px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
                   <div>
                     <div style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:20}}>{t.name}</div>
                     <div style={{color:C.muted,fontSize:12.5,marginTop:2}}><span style={{color:C.legend}}>{t.sport}</span> · {(t.members||[]).join(", ")} · share code <b style={{color:C.chalk}}>{t.code}</b></div>
                   </div>
                   <div style={{display:"flex",gap:8}}>
-                    <button className="fr-btn" onClick={()=>setOpenTeam(null)} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:13}}>All teams</button>
-                    <button className="fr-btn" onClick={()=>leaveTeam(t.id)} style={{background:"transparent",color:C.muted,border:`1px solid ${C.line}`,borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:13}}>Leave</button>
+                    <button className="fr-btn" onClick={()=>setOpenTeam(null)} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,borderRadius:6,padding:"8px 14px",cursor:"pointer",fontSize:13}}>All teams</button>
+                    <button className="fr-btn" onClick={()=>leaveTeam(t.id)} style={{background:"transparent",color:C.muted,border:`1px solid ${C.line}`,borderRadius:6,padding:"8px 14px",cursor:"pointer",fontSize:13}}>Leave</button>
                   </div>
                 </div>
-                <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"16px 18px",minHeight:220,maxHeight:420,overflowY:"auto",marginBottom:12,display:"flex",flexDirection:"column",gap:10}}>
-                  {(t.messages||[]).length===0 ? (<div style={{color:C.muted,textAlign:"center",margin:"auto"}}>No messages yet — say hey to your team.</div>) : (t.messages||[]).map(m=>(
+                <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"16px 18px",minHeight:220,maxHeight:420,overflowY:"auto",marginBottom:12,display:"flex",flexDirection:"column",gap:10}}>
+                  {(t.messages||[]).length===0 ? (<div style={{color:C.muted,textAlign:"center",margin:"auto"}}>No messages yet, say hey to your team.</div>) : (t.messages||[]).map(m=>(
                     <div key={m.id} style={{alignSelf:m.author===profile?"flex-end":"flex-start",maxWidth:"78%"}}>
-                      <div style={{background:m.author===profile?C.you:C.panel2,color:m.author===profile?C.ink:C.chalk,borderRadius:12,padding:"9px 13px",fontSize:14.5,lineHeight:1.45}}>{m.text}</div>
-                      <div style={{color:C.muted,fontSize:11,marginTop:3,textAlign:m.author===profile?"right":"left"}}>{m.author} · {fmtDate(m.date)}</div>
+                      <div style={{background:m.author===profile?C.you:C.panel2,color:m.author===profile?C.ink:C.chalk,borderRadius:10,padding:"9px 13px",fontSize:14.5,lineHeight:1.45}}>{m.text}</div>
+                      <div style={{color:C.muted,fontSize:12,marginTop:3,textAlign:m.author===profile?"right":"left"}}>{m.author} · {fmtDate(m.date)}</div>
                     </div>
                   ))}
                 </div>
@@ -1798,17 +1881,17 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
         )}
 
         {step==="rankings" && (
-          <section className="fr-fade" style={{padding:"36px 0 80px"}}>
+          <section style={{padding:"36px 0 80px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",flexWrap:"wrap",gap:10,marginBottom:8}}>
-              <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:0}}>Team rankings</h2>
-              <button className="fr-btn" onClick={()=>setStep("home")} style={{...btnSolid,padding:"10px 18px"}}>← Back</button>
+              <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:30,margin:0}}>Team rankings</h2>
+              <button className="fr-btn" onClick={()=>setStep("home")} style={btnBack}><Icon name="back"/>Back</button>
             </div>
             <p style={{color:C.muted,margin:"0 0 22px",fontSize:14,lineHeight:1.5}}>Every team, ranked by average graded session across its members. Updates as teammates log new sessions.</p>
             {rankingsErr && <div style={{color:C.you,fontSize:13,marginBottom:14}}>{rankingsErr}</div>}
             {rankingsLoading ? (
               <div style={{color:C.muted,textAlign:"center",padding:30}}>Loading rankings…</div>
             ) : rankings.length===0 ? (
-              <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:30,textAlign:"center",color:C.muted}}>No teams have graded sessions yet.</div>
+              <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:30,textAlign:"center",color:C.muted}}>No teams have graded sessions yet.</div>
             ) : (()=>{
               const bySport={};
               rankings.forEach(r=>{ (bySport[r.sport||"Other"]=bySport[r.sport||"Other"]||[]).push(r); });
@@ -1817,10 +1900,10 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
               <div style={{display:"flex",flexDirection:"column",gap:28}}>
                 {sports.map(sport=>(
                   <div key={sport}>
-                    <div style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:15,color:C.legend,marginBottom:10}}>{sport}</div>
+                    <div style={{fontFamily:BODY,fontWeight:600,textTransform:"uppercase",letterSpacing:0.8,fontSize:15,color:C.legend,marginBottom:10}}>{sport}</div>
                     <div style={{display:"flex",flexDirection:"column",gap:10}}>
                       {bySport[sport].map((r,i)=>(
-                        <div key={r.team_id} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:"14px 18px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+                        <div key={r.team_id} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"14px 18px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
                           <div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:20,color:i===0?C.legend:C.muted,minWidth:28,textAlign:"center"}}>#{i+1}</div>
                           <div style={{flex:1,minWidth:160}}>
                             <div style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:16}}>{r.name}</div>
@@ -1837,62 +1920,108 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
           </section>
         )}
 
-        {step==="home" && (
-          <section className="fr-fade" style={{padding:"56px 0 80px",textAlign:"center"}}>
-            <div style={{color:C.you,fontFamily:DISPLAY,letterSpacing:4,textTransform:"uppercase",fontSize:13,marginBottom:18}}>Real motion tracking · measured, not guessed</div>
-            <h1 style={{fontFamily:DISPLAY,fontWeight:700,textTransform:"uppercase",fontSize:"clamp(40px,8vw,80px)",lineHeight:0.95,margin:"0 auto 22px",maxWidth:760}}>
-              Your joints, <span style={{color:C.legend}}>tracked.</span><br/>Your motion, <span style={{color:C.legend}}>scored.</span>
+        {step==="home" && (<>
+          <section style={{padding:"64px 0 56px",textAlign:"center"}}>
+            <div style={{color:C.you,fontWeight:600,letterSpacing:0.8,textTransform:"uppercase",fontSize:13,marginBottom:16}}>Video technique analysis</div>
+            <h1 style={{fontFamily:DISPLAY,fontWeight:700,textTransform:"uppercase",fontSize:"clamp(40px,7vw,72px)",lineHeight:1,letterSpacing:0.5,margin:"0 auto 20px",maxWidth:760}}>
+              Your joints, tracked.<br/>Your motion, <span style={{color:C.legend}}>scored.</span>
             </h1>
-            <p style={{color:C.muted,maxWidth:560,margin:"0 auto 34px",fontSize:17,lineHeight:1.55}}>
-              A pose model maps your body through the whole motion, right on your device. Then the app measures real joint angles — knee load, arm range, balance, follow-through — and grades them. Different clips give different scores, because it's reading <em>you</em>.
+            <p style={{color:C.muted,maxWidth:580,margin:"0 auto 32px",fontSize:17,lineHeight:1.6}}>
+              Upload a clip of your jump shot, serve, swing, or sprint start. A pose model tracks your body frame by frame in the browser, measures knee load, arm range, balance, and follow-through, then compares the numbers with a legend's form.
             </p>
             <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
-              <label className="fr-btn" tabIndex={0} onKeyDown={e=>(e.key==="Enter"||e.key===" ")&&fileRef.current?.click()} style={btnSolid}>▶ Upload your tape<input ref={fileRef} type="file" accept="video/*" onChange={onFile} style={{display:"none"}}/></label>
-              <button className="fr-btn" onClick={()=>setStep("record")} style={btnGhost}>● Record live</button>
+              <label className="fr-btn" tabIndex={0} onKeyDown={e=>(e.key==="Enter"||e.key===" ")&&fileRef.current?.click()} style={{...btnSolid,padding:"14px 24px",fontSize:16}}><Icon name="upload"/>Upload a clip<input ref={fileRef} type="file" accept="video/*" onChange={onFile} style={{display:"none"}}/></label>
+              <button className="fr-btn" onClick={()=>setStep("record")} style={{...btnGhost,padding:"13px 23px",fontSize:16}}><Icon name="camera"/>Record in browser</button>
             </div>
-            <div style={{color:C.muted,fontSize:13,marginTop:14}}>Best with a side-on, full-body clip in good light · everything runs locally</div>
+            <div style={{color:C.muted,fontSize:13,marginTop:16}}>Works best with a side-on, full-body clip in good light. Analysis runs on your device; nothing is uploaded unless you post to the feed.</div>
           </section>
-        )}
+
+          <section aria-labelledby="how-h" style={{padding:"40px 0",borderTop:`1px solid ${C.line}`}}>
+            <h2 id="how-h" style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:26,margin:"0 0 20px"}}>How it works</h2>
+            <ol className="fr-grid3" style={{listStyle:"none",margin:0,padding:0}}>
+              {[
+                ["Film one rep","Side-on, whole body in frame. Upload a phone video or record here in the browser."],
+                ["Pick the move",`${Object.keys(SPORTS).length} sports and ${TOTAL_MOVES} moves, each scored against its own targets for load depth, range of motion, balance, and finish.`],
+                ["Read the report","A letter grade, measured joint angles, how far you are from your chosen legend, and a three-week plan for your two weakest areas."],
+              ].map(([t,d],i)=>(
+                <li key={t} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:20}}>
+                  <div style={{fontFamily:DISPLAY,fontWeight:600,fontSize:15,color:C.you,marginBottom:10}}>{String(i+1).padStart(2,"0")}</div>
+                  <h3 style={{fontSize:17,fontWeight:600,margin:"0 0 6px"}}>{t}</h3>
+                  <p style={{color:C.muted,fontSize:14.5,lineHeight:1.55,margin:0}}>{d}</p>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section aria-labelledby="sample-h" style={{padding:"40px 0 64px",borderTop:`1px solid ${C.line}`}}>
+            <div className="fr-split" style={{display:"grid",gridTemplateColumns:"minmax(0,5fr) minmax(0,7fr)",gap:32,alignItems:"start"}}>
+              <div>
+                <h2 id="sample-h" style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:26,margin:"0 0 12px"}}>Numbers, not vibes</h2>
+                <p style={{color:C.muted,fontSize:15,lineHeight:1.6,margin:"0 0 14px"}}>Every line in a report comes from angles measured on your clip. Film a different rep and you get a different score.</p>
+                <p style={{color:C.muted,fontSize:15,lineHeight:1.6,margin:0}}>Legend benchmarks are representative targets for each player's style, not motion-capture of the real athlete. Upload a reference clip and you can be measured against that instead.</p>
+              </div>
+              <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"20px 22px"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:16}}>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:600,letterSpacing:0.8,textTransform:"uppercase",color:C.muted}}>Example report</div>
+                    <div style={{fontSize:16,fontWeight:600,marginTop:4}}>Jump shot vs Michael Jordan</div>
+                  </div>
+                  <div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:44,lineHeight:1,color:C.legend}}>B</div>
+                </div>
+                <ul className="fr-list" style={{fontSize:14.5}}>
+                  <li>Knee load: you bend to ~138°, about 12° less than Michael Jordan's ~126°.</li>
+                  <li>Torso lean: ~9° from vertical, 2° more than Michael Jordan's ~7°.</li>
+                  <li>Follow-through: arm extends to ~162°, 8° shorter than the ~170° benchmark.</li>
+                </ul>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(100px,1fr))",gap:"12px 16px",marginTop:16,paddingTop:16,borderTop:`1px solid ${C.line}`}}>
+                  {[["Base",84],["Load",68],["Range",77],["Finish",71]].map(([k,v])=>(
+                    <div key={k}><div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,color:C.muted,marginBottom:6}}><span>{k}</span><span style={{color:C.chalk}}>{v}</span></div><Bar value={v} color={v>=80?C.good:v>=65?C.legend:C.you}/></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        </>)}
 
         {step==="record" && (
-          <section className="fr-fade" style={{padding:"36px 0 80px"}}>
-            <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:"0 0 6px"}}>Roll camera</h2>
+          <section style={{padding:"36px 0 80px"}}>
+            <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:30,margin:"0 0 6px"}}>Roll camera</h2>
             <p style={{color:C.muted,margin:"0 0 22px",fontSize:15}}>Frame your whole body side-on, then capture one clean rep.</p>
-            <div style={{background:"#000",border:`1px solid ${C.line}`,borderRadius:14,overflow:"hidden",position:"relative"}}>
+            <div style={{background:"#000",border:`1px solid ${C.line}`,borderRadius:10,overflow:"hidden",position:"relative"}}>
               <video ref={liveRef} muted playsInline autoPlay style={{width:"100%",display:"block",maxHeight:460,objectFit:"contain",background:"#000",transform:mirror?"scaleX(-1)":"none"}}/>
-              {recording && (<div style={{position:"absolute",top:14,left:14,display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.55)",padding:"6px 12px",borderRadius:20,fontFamily:DISPLAY,letterSpacing:1}}><span style={{width:10,height:10,borderRadius:"50%",background:C.you,animation:"frblink 1s steps(2,start) infinite"}}/>REC {String(Math.floor(recSecs/60)).padStart(2,"0")}:{String(recSecs%60).padStart(2,"0")}</div>)}
+              {recording && (<div style={{position:"absolute",top:14,left:14,display:"flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.55)",padding:"6px 12px",borderRadius:6,fontFamily:DISPLAY,letterSpacing:1}}><span style={{width:10,height:10,borderRadius:"50%",background:C.you,animation:"frblink 1s steps(2,start) infinite"}}/>REC {String(Math.floor(recSecs/60)).padStart(2,"0")}:{String(recSecs%60).padStart(2,"0")}</div>)}
             </div>
-            {recError && (<div style={{background:"rgba(255,106,61,0.12)",border:`1px solid ${C.you}`,color:C.you,padding:12,borderRadius:8,marginTop:16,fontSize:14}}>{recError}</div>)}
+            {recError && (<div style={{background:"rgba(255,106,61,0.12)",border:`1px solid ${C.you}`,color:C.you,padding:12,borderRadius:6,marginTop:16,fontSize:14}}>{recError}</div>)}
             <div style={{display:"flex",gap:12,marginTop:20,flexWrap:"wrap",alignItems:"center"}}>
-              {!recording ? (<button className="fr-btn" onClick={beginRecording} disabled={!!recError} style={{...btnSolid,background:recError?C.panel2:C.you,color:recError?C.muted:C.ink,cursor:recError?"not-allowed":"pointer"}}>● Start recording</button>)
-                          : (<button className="fr-btn" onClick={stopRecording} style={{...btnSolid,background:C.chalk,color:C.ink}}>■ Stop &amp; use clip</button>)}
-              <button className="fr-btn" onClick={()=>{stopCamera();setRecording(false);setStep("home");}} style={{background:"transparent",color:C.muted,border:`1px solid ${C.line}`,padding:"14px 22px",borderRadius:8,cursor:"pointer",fontFamily:DISPLAY,letterSpacing:1,textTransform:"uppercase"}}>Cancel</button>
-              <button className="fr-btn" onClick={()=>setMirror(m=>!m)} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"14px 18px",borderRadius:8,cursor:"pointer",fontSize:13}}>⇋ Mirror: {mirror?"on":"off"}</button>
+              {!recording ? (<button className="fr-btn" onClick={beginRecording} disabled={!!recError} style={{...btnSolid,background:recError?C.panel2:C.you,color:recError?C.muted:C.ink,cursor:recError?"not-allowed":"pointer"}}><Icon name="rec" size={12}/>Start recording</button>)
+                          : (<button className="fr-btn" onClick={stopRecording} style={{...btnSolid,background:C.chalk,color:C.ink}}><Icon name="stop" size={12}/>Stop and use clip</button>)}
+              <button className="fr-btn" onClick={()=>{stopCamera();setRecording(false);setStep("home");}} style={{...btnGhost,color:C.muted}}>Cancel</button>
+              <button className="fr-btn" onClick={()=>setMirror(m=>!m)} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"14px 18px",borderRadius:6,cursor:"pointer",fontSize:13}}><Icon name="flip" size={15}/>Mirror {mirror?"on":"off"}</button>
               <label className="fr-btn" tabIndex={0} style={{marginLeft:"auto",color:C.you,cursor:"pointer",fontSize:14}}>or upload instead<input ref={fileRef} type="file" accept="video/*" onChange={onFile} style={{display:"none"}}/></label>
             </div>
           </section>
         )}
 
         {step==="context" && (
-          <section className="fr-fade" style={{padding:"36px 0 80px"}}>
-            <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:30,margin:"0 0 6px"}}>Set the scene</h2>
+          <section style={{padding:"36px 0 80px"}}>
+            <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:30,margin:"0 0 6px"}}>Set the scene</h2>
             <p style={{color:C.muted,margin:"0 0 28px",fontSize:15}}>Tell it the sport and move so the scoring uses the right targets.</p>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24,alignItems:"start"}}>
-              <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:12}}>
-                {videoUrl?(<video src={videoUrl} controls style={{width:"100%",borderRadius:8,display:"block",background:"#000"}}/>):(<div style={{aspectRatio:"16/9",background:"#000",borderRadius:8}}/>)}
+              <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:12}}>
+                {videoUrl?(<video src={videoUrl} controls style={{width:"100%",borderRadius:6,display:"block",background:"#000"}}/>):(<div style={{aspectRatio:"16/9",background:"#000",borderRadius:6}}/>)}
                 <div style={{color:C.muted,fontSize:12,marginTop:8,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{fileName}</div>
                 <button className="fr-btn" onClick={()=>fileRef.current?.click()} style={{marginTop:8,background:"transparent",color:C.you,border:`1px solid ${C.you}`,borderRadius:6,padding:"8px 12px",fontSize:13,cursor:"pointer",width:"100%"}}>Replace clip<input ref={fileRef} type="file" accept="video/*" onChange={onFile} style={{display:"none"}}/></button>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:18}}>
-                <Field label="Sport"><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{Object.keys(SPORTS).map(s=>(<button key={s} className="fr-chip" onClick={()=>pickSport(s)} style={{background:sport===s?C.you:"transparent",color:sport===s?C.ink:C.chalk,border:`1px solid ${sport===s?C.you:C.line}`,borderRadius:20,padding:"7px 14px",fontSize:13,cursor:"pointer",fontWeight:500}}>{s}</button>))}<button className="fr-chip" onClick={()=>{ if(SPORTS[sport]){ setSport(""); setMove(""); setLegend(""); } }} style={{background:!SPORTS[sport]?C.you:"transparent",color:!SPORTS[sport]?C.ink:C.chalk,border:`1px solid ${!SPORTS[sport]?C.you:C.line}`,borderRadius:20,padding:"7px 14px",fontSize:13,cursor:"pointer",fontWeight:500}}>Other</button></div>
+                <Field label="Sport"><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{Object.keys(SPORTS).map(s=>(<button key={s} className="fr-chip" onClick={()=>pickSport(s)} style={{background:sport===s?C.you:"transparent",color:sport===s?C.ink:C.chalk,border:`1px solid ${sport===s?C.you:C.line}`,borderRadius:6,padding:"7px 14px",fontSize:13,cursor:"pointer",fontWeight:500}}>{s}</button>))}<button className="fr-chip" onClick={()=>{ if(SPORTS[sport]){ setSport(""); setMove(""); setLegend(""); } }} style={{background:!SPORTS[sport]?C.you:"transparent",color:!SPORTS[sport]?C.ink:C.chalk,border:`1px solid ${!SPORTS[sport]?C.you:C.line}`,borderRadius:6,padding:"7px 14px",fontSize:13,cursor:"pointer",fontWeight:500}}>Other</button></div>
                   {!SPORTS[sport] && (<input value={sport} onChange={e=>setSport(e.target.value)} placeholder="Enter your sport" style={{...inputStyle,marginTop:8}}/>)}
                 </Field>
                 <Field label="Move / technique">{SPORTS[sport]?(<Select value={move} onChange={setMove} options={SPORTS[sport].moves}/>):(<input value={move} onChange={e=>setMove(e.target.value)} placeholder="Enter the move or technique" style={inputStyle}/>)}</Field>
                 <Field label="Compare me to">{SPORTS[sport]?(<Select value={legend} onChange={setLegend} options={SPORTS[sport].legends} accent={C.legend}/>):(<input value={legend} onChange={e=>setLegend(e.target.value)} placeholder="Enter a legend's name" style={{...inputStyle,color:C.legend}}/>)}</Field>
                 <Field label="Your level"><Select value={level} onChange={setLevel} options={LEVELS}/></Field>
-                <Field label="AI coach (optional — free Google AI Studio key)">
-                  <input type="password" value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder="Leave blank for the built-in coach — no key needed" style={inputStyle}/>
-                  <div style={{color:C.muted,fontSize:11.5,marginTop:6,lineHeight:1.5}}>With a key, an AI rewrites the analysis &amp; plan from your measured numbers. Without one, you still get the full measured report. Key stays in this tab only.</div>
+                <Field label="AI coach (optional, free Google AI Studio key)">
+                  <input type="password" value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder="Leave blank for the built-in coach, no key needed" style={inputStyle}/>
+                  <div style={{color:C.muted,fontSize:12,marginTop:6,lineHeight:1.5}}>With a key, an AI rewrites the analysis &amp; plan from your measured numbers. Without one, you still get the full measured report. Key stays in this tab only.</div>
                 </Field>
                 <Field label="Reference clip (optional)">
                   {!refVideoUrl ? (
@@ -1905,17 +2034,17 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                   )}
                   {!refVideoUrl && sessions.filter(s=>s.report&&s.report.measurements).length>0 && (
                     <div style={{marginTop:10}}>
-                      <div style={{color:C.muted,fontSize:11.5,margin:"2px 0 8px"}}>or compare to one of your own past sessions:</div>
+                      <div style={{color:C.muted,fontSize:12,margin:"2px 0 8px"}}>or compare to one of your own past sessions:</div>
                       <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
                         {sessions.filter(s=>s.report&&s.report.measurements).slice(0,8).map(s=>(
-                          <button key={s.id} className="fr-chip" onClick={()=>pickRefSession(s.id)} style={{background:refSessionId===s.id?C.you:"transparent",color:refSessionId===s.id?C.ink:C.chalk,border:`1px solid ${refSessionId===s.id?C.you:C.line}`,borderRadius:20,padding:"7px 14px",fontSize:12.5,cursor:"pointer"}}>{s.move} · {fmtDate(s.date)} · {s.grade}</button>
+                          <button key={s.id} className="fr-chip" onClick={()=>pickRefSession(s.id)} style={{background:refSessionId===s.id?C.you:"transparent",color:refSessionId===s.id?C.ink:C.chalk,border:`1px solid ${refSessionId===s.id?C.you:C.line}`,borderRadius:6,padding:"7px 14px",fontSize:12.5,cursor:"pointer"}}>{s.move} · {fmtDate(s.date)} · {s.grade}</button>
                         ))}
                       </div>
                     </div>
                   )}
-                  <div style={{color:C.muted,fontSize:11.5,marginTop:6,lineHeight:1.5}}>If a coach (or you) uploads a clip of correct form here — or you pick a past session above — your session gets measured against it directly: a real, apples-to-apples comparison instead of the idealized legend benchmark. Skip this and you still get the full report as usual.</div>
+                  <div style={{color:C.muted,fontSize:12,marginTop:6,lineHeight:1.5}}>If a coach (or you) uploads a clip of correct form here, or you pick a past session above, your session gets measured against it directly: a real, apples-to-apples comparison instead of the idealized legend benchmark. Skip this and you still get the full report as usual.</div>
                 </Field>
-                <button className="fr-btn" onClick={analyze} style={{...btnSolid,padding:"15px",border:"none"}}>Track &amp; grade my motion →</button>
+                <button className="fr-btn" onClick={analyze} style={{...btnSolid,padding:"15px",border:"none"}}>Analyze my clip</button>
                 <div style={{color:C.muted,fontSize:12,lineHeight:1.5}}>Tip: a side-on view where your whole body stays in frame gives the cleanest tracking.</div>
               </div>
             </div>
@@ -1923,9 +2052,9 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
         )}
 
         {step==="analyzing" && (
-          <section className="fr-fade" style={{padding:"110px 0",textAlign:"center"}}>
+          <section style={{padding:"110px 0",textAlign:"center"}}>
             <div style={{width:54,height:54,border:`4px solid ${C.line}`,borderTopColor:C.you,borderRadius:"50%",margin:"0 auto 26px",animation:"frspin 0.9s linear infinite"}}/>
-            <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:26}}>In the film room…</h2>
+            <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:26}}>In the film room…</h2>
             <p style={{color:C.muted}}>{phase}</p>
             <div style={{maxWidth:320,margin:"18px auto 0",height:8,background:"rgba(243,240,228,0.08)",borderRadius:6,overflow:"hidden"}}><div style={{width:`${progress}%`,height:"100%",background:C.you,transition:"width .3s"}}/></div>
             <div style={{color:C.muted,fontSize:12,marginTop:8}}>{progress}%</div>
@@ -1933,48 +2062,48 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
         )}
 
         {step==="report" && report && (
-          <section className="fr-fade" style={{padding:"32px 0 90px"}}>
+          <section style={{padding:"32px 0 90px"}}>
             <div style={{display:"flex",gap:22,alignItems:"center",flexWrap:"wrap",marginBottom:24}}>
               <div style={{fontFamily:DISPLAY,fontWeight:700,fontSize:72,lineHeight:1,color:gradeColor(report.grade),minWidth:90,textAlign:"center"}}>{report.grade}</div>
               <div style={{flex:1,minWidth:240}}>
-                <div style={{color:C.you,fontFamily:DISPLAY,letterSpacing:2,textTransform:"uppercase",fontSize:12,marginBottom:6}}>{move} · motion report</div>
+                <div style={{color:C.you,fontFamily:BODY,fontWeight:600,letterSpacing:0.8,textTransform:"uppercase",fontSize:12,marginBottom:6}}>{move} · motion report</div>
                 <p style={{margin:0,fontSize:17,lineHeight:1.5}}>{report.summary}</p>
-                <p style={{margin:"10px 0 0",fontSize:14,lineHeight:1.5,color:C.muted,fontStyle:"italic"}}><span style={{color:C.legend,fontStyle:"normal",fontFamily:DISPLAY,letterSpacing:0.5,textTransform:"uppercase",fontSize:12}}>What the tracker measured: </span>{report.observed}</p>
-                <div style={{marginTop:10,fontSize:11.5,color:report.aiCoached?C.good:C.muted,fontFamily:DISPLAY,letterSpacing:1,textTransform:"uppercase"}}>{report.aiCoached?"✓ AI coach · grounded in your measured numbers":"Built-in coach · measured analysis"}</div>
+                <p style={{margin:"10px 0 0",fontSize:14,lineHeight:1.5,color:C.muted,fontStyle:"italic"}}><span style={{color:C.legend,fontStyle:"normal",fontFamily:BODY,fontWeight:600,letterSpacing:0.8,textTransform:"uppercase",fontSize:12}}>What the tracker measured: </span>{report.observed}</p>
+                <div style={{marginTop:10,fontSize:11.5,color:report.aiCoached?C.good:C.muted,fontFamily:BODY,fontWeight:600,letterSpacing:0.8,textTransform:"uppercase"}}>{report.aiCoached?"Coaching notes written by AI from your measured numbers":"Coaching notes from built-in rules"}</div>
                 {report.aiError && <div style={{marginTop:6,fontSize:12,color:C.you}}>{report.aiError}</div>}
               </div>
             </div>
 
             {frames.length>0 && (
               <div style={{marginBottom:26}}>
-                <div style={{color:C.muted,fontSize:12,letterSpacing:1,textTransform:"uppercase",marginBottom:8,fontFamily:DISPLAY}}>Your motion, with the tracked skeleton</div>
+                <div style={{color:C.muted,fontSize:12,letterSpacing:0.8,textTransform:"uppercase",marginBottom:8,fontFamily:BODY,fontWeight:600}}>Your motion, with the tracked skeleton</div>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{frames.map((f,i)=>(<img key={i} src={`data:image/jpeg;base64,${f}`} alt={`frame ${i+1}`} style={{height:120,borderRadius:6,border:`1px solid ${C.line}`}}/>))}</div>
               </div>
             )}
 
             {report.analysis && report.analysis.length>0 && (
-              <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"20px 24px",marginBottom:28}}>
-                <h3 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:20,margin:"0 0 12px"}}>The breakdown</h3>
+              <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"20px 24px",marginBottom:28}}>
+                <h3 style={{fontFamily:BODY,fontWeight:600,fontSize:18,margin:"0 0 12px"}}>The breakdown</h3>
                 {report.analysis.map((a,i)=>(<p key={i} style={{margin:i===0?0:"12px 0 0",fontSize:15,lineHeight:1.6}}>{a}</p>))}
               </div>
             )}
 
             {report.match && (
-              <div style={{background:C.panel,border:`1px solid ${C.legend}`,borderRadius:14,padding:"20px 24px",marginBottom:28}}>
-                <h3 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:20,margin:"0 0 6px"}}>How your form compares</h3>
+              <div style={{background:C.panel,border:`1px solid ${C.legend}`,borderRadius:10,padding:"20px 24px",marginBottom:28}}>
+                <h3 style={{fontFamily:BODY,fontWeight:600,fontSize:18,margin:"0 0 6px"}}>How your form compares</h3>
                 {report.match.real ? (
                   <p style={{margin:"0 0 14px",fontSize:16,lineHeight:1.5}}>Measured directly against <span style={{color:C.legend,fontWeight:600}}>{report.match.refLabel||"the reference clip"}</span> for this move.</p>
                 ) : (
                   <p style={{margin:"0 0 14px",fontSize:16,lineHeight:1.5}}>Your {move.toLowerCase()} most resembles <span style={{color:C.legend,fontWeight:600}}>{report.match.legend}'s {report.match.form}</span>.{report.match.chosen && report.match.chosen!==report.match.legend ? ` (You picked ${report.match.chosen}, but by the measurements your motion lines up closest with ${report.match.legend}.)` : ""}</p>
                 )}
-                {report.match.lines.map((l,i)=>(<div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:9}}><span style={{color:C.you,fontWeight:700}}>›</span><span style={{fontSize:14.5,lineHeight:1.5}}>{l}</span></div>))}
-                <div style={{color:C.muted,fontSize:11.5,marginTop:12,lineHeight:1.5}}>{report.match.real ? "These differences are measured directly from both tracked clips — real numbers, no idealized model." : "Differences are measured from your tracked joints against an idealized model of each legend's form — a representative template, not motion-capture of the real player."}</div>
+                {report.match.lines.map((l,i)=>(<div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:9}}><span style={{flex:"none",width:6,height:2,background:C.you,marginTop:11}}/><span style={{fontSize:15,lineHeight:1.5}}>{l}</span></div>))}
+                <div style={{color:C.muted,fontSize:12,marginTop:12,lineHeight:1.5}}>{report.match.real ? "These differences are measured directly from both tracked clips, real numbers, no idealized model." : "Differences are measured from your tracked joints against an idealized model of each legend's form, a representative template, not motion-capture of the real player."}</div>
               </div>
             )}
 
-            <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:14,padding:"22px 24px",marginBottom:28}}>
+            <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:"22px 24px",marginBottom:28}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:18}}>
-                <h3 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:20,margin:0}}>Tale of the tape</h3>
+                <h3 style={{fontFamily:BODY,fontWeight:600,fontSize:18,margin:0}}>Tale of the tape</h3>
                 <div style={{fontSize:13}}><span style={{color:C.you,fontWeight:600}}>You</span><span style={{color:C.muted}}> vs </span><span style={{color:C.legend,fontWeight:600}}>{legend}</span></div>
               </div>
               {report.comparison.map((c,i)=>(<div key={c.metric} style={{marginBottom:i===report.comparison.length-1?0:18}}>
@@ -1982,23 +2111,23 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                 <div style={{marginBottom:5}}><Bar value={c.you} color={C.you} delay={i*120}/></div>
                 <Bar value={c.legend} color={C.legend} delay={i*120+60}/>
               </div>))}
-              <div style={{color:C.muted,fontSize:11.5,marginTop:14,lineHeight:1.5}}>Your numbers are measured from your tracked joints. The legend column is an idealized elite target for this move, not motion-capture of the real player.</div>
+              <div style={{color:C.muted,fontSize:12,marginTop:14,lineHeight:1.5}}>Your numbers are measured from your tracked joints. The legend column is an idealized elite target for this move, not motion-capture of the real player.</div>
             </div>
 
-            <h3 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:20,margin:"0 0 14px"}}>Phase by phase</h3>
+            <h3 style={{fontFamily:BODY,fontWeight:600,fontSize:18,margin:"0 0 14px"}}>Phase by phase</h3>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(210px,1fr))",gap:14,marginBottom:32}}>
-              {report.phases.map(p=>(<div key={p.name} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,padding:18}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:10}}><span style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:15}}>{p.name}</span><span style={{fontFamily:DISPLAY,fontWeight:700,fontSize:22,color:p.score>=80?C.good:p.score>=65?C.legend:C.you}}>{p.score}</span></div>
+              {report.phases.map(p=>(<div key={p.name} style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:18}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:10}}><span style={{fontFamily:BODY,fontWeight:600,textTransform:"uppercase",letterSpacing:0.8,fontSize:15}}>{p.name}</span><span style={{fontFamily:DISPLAY,fontWeight:700,fontSize:22,color:p.score>=80?C.good:p.score>=65?C.legend:C.you}}>{p.score}</span></div>
                 <Bar value={p.score} color={p.score>=80?C.good:p.score>=65?C.legend:C.you}/>
                 <p style={{color:C.muted,fontSize:13.5,lineHeight:1.5,margin:"12px 0 0"}}>{p.note}</p>
               </div>))}
             </div>
 
-            <h3 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:1,fontSize:20,margin:"0 0 14px"}}>Your improvement plan</h3>
+            <h3 style={{fontFamily:BODY,fontWeight:600,fontSize:18,margin:"0 0 14px"}}>Your improvement plan</h3>
             {(report.plan && report.plan.length>0) ? (
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:14,marginBottom:30}}>
                 {report.plan.map((f,i)=>(
-                  <div key={i} style={{background:C.panel2,border:`1px solid ${C.line}`,borderRadius:14,padding:"20px 22px"}}>
+                  <div key={i} style={{background:C.panel2,border:`1px solid ${C.line}`,borderRadius:10,padding:"20px 22px"}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8,gap:10}}>
                       <span style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:17}}>{f.title}</span>
                       <span style={{fontFamily:DISPLAY,color:C.you,fontSize:12,letterSpacing:1}}>{i===0?"PRIORITY 1":"PRIORITY 2"}{f.score!=null?` · ${f.score}`:""}</span>
@@ -2006,7 +2135,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                     <p style={{color:C.muted,fontSize:13.5,lineHeight:1.5,margin:"0 0 14px"}}>{f.why}</p>
                     {f.drills && f.drills.length>0 && (
                       <div style={{marginBottom:14}}>
-                        {f.drills.map((d,j)=>(<div key={j} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:8}}><span style={{color:C.you,fontWeight:700}}>·</span><span style={{fontSize:14,lineHeight:1.45}}>{d}</span></div>))}
+                        {f.drills.map((d,j)=>(<div key={j} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:8}}><span style={{flex:"none",width:6,height:2,background:C.you,marginTop:10}}/><span style={{fontSize:14,lineHeight:1.5}}>{d}</span></div>))}
                       </div>
                     )}
                     {f.weeks && f.weeks.length>0 && (
@@ -2014,21 +2143,35 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                         {f.weeks.map((w,j)=>(<div key={j} style={{fontSize:13,lineHeight:1.5,color:C.chalk,marginBottom:6}}>{w}</div>))}
                       </div>
                     )}
-                    {f.goal && (<div style={{fontSize:13,lineHeight:1.5}}><span style={{color:C.legend,fontFamily:DISPLAY,letterSpacing:0.5,textTransform:"uppercase",fontSize:11}}>Goal: </span>{f.goal}</div>)}
+                    {f.goal && (<div style={{fontSize:13,lineHeight:1.5}}><span style={{color:C.legend,fontFamily:BODY,fontWeight:600,letterSpacing:0.8,textTransform:"uppercase",fontSize:11.5}}>Goal: </span>{f.goal}</div>)}
                   </div>
                 ))}
               </div>
             ) : (
-              <div style={{background:C.panel2,border:`1px solid ${C.line}`,borderRadius:14,padding:"22px 24px",marginBottom:30}}>
+              <div style={{background:C.panel2,border:`1px solid ${C.line}`,borderRadius:10,padding:"22px 24px",marginBottom:30}}>
                 {(report.drills||[]).map((d,i)=>(<div key={i} style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:i===(report.drills||[]).length-1?0:14}}><span style={{fontFamily:DISPLAY,fontWeight:700,color:C.you,fontSize:18,minWidth:22}}>{String(i+1).padStart(2,"0")}</span><span style={{fontSize:15,lineHeight:1.5}}>{d}</span></div>))}
               </div>
             )}
 
             <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-              <button className="fr-btn" onClick={reset} style={{...btnSolid,padding:"13px 24px",border:"none"}}>Scout another clip</button>
-              <button className="fr-btn" onClick={()=>setStep("context")} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,padding:"13px 24px",borderRadius:8,cursor:"pointer",fontFamily:DISPLAY,letterSpacing:1,textTransform:"uppercase"}}>Re-run / change legend</button>
+              <button className="fr-btn" onClick={reset} style={btnSolid}>Analyze another clip</button>
+              <button className="fr-btn" onClick={()=>setStep("context")} style={btnGhost}>Change move or legend</button>
             </div>
           </section>
+        )}
+
+        {step!=="shorts" && (
+          <footer className="no-print" style={{borderTop:`1px solid ${C.line}`,padding:"28px 0 40px",display:"flex",flexWrap:"wrap",gap:"20px 40px",justifyContent:"space-between",color:C.muted,fontSize:13.5}}>
+            <div style={{maxWidth:440,lineHeight:1.6}}>
+              <div style={{color:C.chalk,fontWeight:600,marginBottom:4}}>LegendSports</div>
+              Grades come from pose tracking that runs in your browser. They are a training aid, not an official combine measurement.
+            </div>
+            <nav aria-label="Footer" style={{display:"grid",gridTemplateColumns:"repeat(2,auto)",gap:"8px 32px",alignContent:"start"}}>
+              {[["home","Analyze a clip"],["feed","Highlights feed"],["shorts","Shorts"],["community","Community Q&A"],["rankings","Team rankings"],["feedback","Send feedback"]].map(([k,label])=>(
+                <a key={k} className="fr-link" href={ROUTES[k]?`#/${ROUTES[k]}`:"./"} onClick={e=>{e.preventDefault();go(k);}}>{label}</a>
+              ))}
+            </nav>
+          </footer>
         )}
       </div>
     </div>
@@ -2036,6 +2179,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+window.__lsStarted=true;
 </script>
 </body>
 </html>
