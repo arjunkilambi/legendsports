@@ -301,21 +301,25 @@ function paintReady(v){ return new Promise(res=>{ let done=false; const fin=()=>
 function kpMap(keypoints,thr){ const m={}; keypoints.forEach(k=>{ if(k.score>=thr) m[k.name]={x:k.x,y:k.y,score:k.score}; }); return m; }
 function kpMap3D(keypoints,thr){ const m={}; (keypoints||[]).forEach(k=>{ if(k.score==null||k.score>=thr) m[k.name]={x:k.x,y:k.y,z:k.z}; }); return m; }
 
-async function runPose(url,onProgress){
+async function runPose(url,onProgress,opts){
+  const crop=opts&&opts.crop, trim=opts&&opts.trim;
   const det=await getDetector();
-  const v=document.createElement("video"); v.src=url; v.muted=true; v.playsInline=true; v.preload="auto";
+  const v=document.createElement("video"); if(!String(url).startsWith("blob:")) v.crossOrigin="anonymous"; v.src=url; v.muted=true; v.playsInline=true; v.preload="auto";
   await new Promise((res,rej)=>{ v.addEventListener("loadeddata",res,{once:true}); v.addEventListener("error",()=>rej(new Error("Could not load the video file")),{once:true}); });
   let dur=v.duration;
   if(!isFinite(dur)||dur===0){ await new Promise(res=>{ const f=()=>{ if(isFinite(v.duration)&&v.duration>0){v.removeEventListener("durationchange",f);res();} }; v.addEventListener("durationchange",f); v.currentTime=1e6; setTimeout(res,1500); }); dur=isFinite(v.duration)&&v.duration>0?v.duration:0; }
-  const W=Math.min(480,v.videoWidth||480), scale=W/(v.videoWidth||W), H=Math.round((v.videoHeight||360)*scale);
+  const vw=v.videoWidth||480, vh=v.videoHeight||360;
+  const cx=crop?crop.x*vw:0, cy=crop?crop.y*vh:0, cw=crop?crop.w*vw:vw, ch=crop?crop.h*vh:vh;
+  const W=Math.round(Math.min(480,cw)), H=Math.round(ch*(W/cw));
+  const t0=(trim&&dur)?clamp(trim.start,0,dur):0, t1=(trim&&dur)?clamp(trim.end,t0+0.2,dur):dur, span=dur?t1-t0:0;
   const canvas=document.createElement("canvas"); canvas.width=W; canvas.height=H; const ctx=canvas.getContext("2d");
   const N=36, poses=[], shots=[], shotEvery=Math.max(1,Math.round(N/6));
   let blankCount=0;
   for(let i=0;i<N;i++){
-    const t=dur?(dur*(i+0.5))/N:0;
-    try{ await seekTo(v,Math.min(t,Math.max(0,dur-0.05))); }catch(e){}
+    const t=span?(span*(i+0.5))/N:0;
+    try{ await seekTo(v,Math.min(t0+t,Math.max(0,dur-0.05))); }catch(e){}
     await paintReady(v);
-    ctx.drawImage(v,0,0,W,H);
+    ctx.drawImage(v,cx,cy,cw,ch,0,0,W,H);
     // quick blank-frame check (sample a few pixels)
     try{ const s=ctx.getImageData(W>>1,H>>1,1,1).data; const s2=ctx.getImageData(W>>2,H>>2,1,1).data; if((s[0]+s[1]+s[2]+s2[0]+s2[1]+s2[2])<12) blankCount++; }catch(e){}
     // same defensive timeout idea as seekTo: a stalled WebGL inference call
@@ -334,7 +338,7 @@ async function runPose(url,onProgress){
     }
     if(onProgress)onProgress(Math.round(((i+1)/N)*100));
   }
-  return { poses, shots, W, H, blankCount, N, dur };
+  return { poses, shots, W, H, blankCount, N, dur:span };
 }
 function drawSkeleton(ctx,keypoints,thr){
   const byName={}; keypoints.forEach(k=>byName[k.name]=k);
@@ -594,7 +598,7 @@ function analyzeMotion(data, sport, move, legend, level, refData, refMeasurement
     // a past session's stored measurements (refMeasurements) skips re-tracking
     // entirely; a freshly-uploaded reference clip (refData) gets measured now.
     const refM=refMeasurements || (refData?measureClip(refData):null);
-    const refLabel=refMeasurements ? (refMeasurements.label||"your past session") : "the reference clip";
+    const refLabel=refMeasurements ? (refMeasurements.label||"your past session") : ((refData&&refData.label)||"the reference clip");
     if(refM && !refM.lowTrack){
       const refVec={ minKnee:refM.hasKnee?refM.minKnee:null, torso:refM.measTorso, finish:refM.finishElbow, baseW:refM.baseWidth };
       const r2=(x)=>Math.round(x); const lines=[];
@@ -669,6 +673,91 @@ const PRIVATE_ROUTES=new Set(["teams","history","recruit","feedback","account","
 const TITLES={home:"LegendSports: video technique analysis for athletes",feed:"Highlights feed | LegendSports",shorts:"Shorts | LegendSports",community:"Community Q&A | LegendSports",rankings:"Team rankings | LegendSports",teams:"Teams | LegendSports",history:"Your sessions | LegendSports",recruit:"Recruiting | LegendSports",feedback:"Feedback | LegendSports",account:"Account | LegendSports",auth:"Sign in | LegendSports",report:"Motion report | LegendSports",context:"Set up analysis | LegendSports",record:"Record a clip | LegendSports",analyzing:"Analyzing | LegendSports",creator:"Creator | LegendSports"};
 function isAuthHash(){ const h=window.location.hash||""; return h.includes("access_token")||h.includes("type=")||h.includes("error="); }
 function routeFromHash(){ if(isAuthHash()) return null; const h=(window.location.hash||"").replace(/^#\/?/,""); const k=Object.keys(ROUTES).find(k=>ROUTES[k]===h); return k||null; }
+// Reference clips from social links. Platforms don't let a page read their video
+// frames, so these are played in the platform's own embed and captured from the tab.
+function parseClipLink(raw){
+  const link=(raw||"").trim(); if(!link) return null;
+  let u; try{ u=new URL(link); }catch(e){ return {error:"That doesn't look like a link. Paste the full address, starting with https://."}; }
+  const h=u.hostname.replace(/^(www|m|mobile)\./,"");
+  if(/\.(mp4|webm|mov|m4v|ogv)$/i.test(u.pathname)) return {platform:"Video file",direct:true,src:link};
+  const yt=link.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/);
+  if(yt) return {platform:"YouTube",embed:`https://www.youtube-nocookie.com/embed/${yt[1]}?playsinline=1&rel=0&modestbranding=1`,tall:/\/shorts\//.test(link)};
+  if(h.endsWith("tiktok.com")){ const m=u.pathname.match(/\/video\/(\d+)/); if(m) return {platform:"TikTok",embed:`https://www.tiktok.com/embed/v2/${m[1]}`,tall:true}; return {error:"Short TikTok links can't be embedded. Open the link, then copy the full address from your browser (it contains /video/ followed by a number)."}; }
+  if(h.endsWith("instagram.com")){ const m=u.pathname.match(/\/(p|reel|reels|tv)\/([\w-]+)/); if(m) return {platform:"Instagram",embed:`https://www.instagram.com/${m[1]==="reels"?"reel":m[1]}/${m[2]}/embed`,tall:true}; return {error:"Paste a link to a specific Instagram post or reel."}; }
+  if(h.endsWith("facebook.com")||h==="fb.watch") return {platform:"Facebook",embed:`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(link)}&show_text=false`};
+  if(h.endsWith("vimeo.com")){ const m=u.pathname.match(/\/(\d+)/); if(m) return {platform:"Vimeo",embed:`https://player.vimeo.com/video/${m[1]}?playsinline=1`}; }
+  return {error:"Links from this site can't be played here. Use YouTube, TikTok, Instagram, Facebook, Vimeo, or a direct .mp4 or .webm link."};
+}
+function canReadDirect(src){
+  return new Promise(res=>{
+    const v=document.createElement("video"); v.crossOrigin="anonymous"; v.muted=true; v.preload="auto";
+    const done=(ok)=>{ clearTimeout(t); v.removeAttribute("src"); v.load(); res(ok); };
+    const t=setTimeout(()=>done(false),10000);
+    v.addEventListener("loadeddata",()=>{ try{ const c=document.createElement("canvas"); c.width=4; c.height=4; const x=c.getContext("2d"); x.drawImage(v,0,0,4,4); x.getImageData(0,0,1,1); done(true); }catch(e){ done(false); } },{once:true});
+    v.addEventListener("error",()=>done(false),{once:true});
+    v.src=src;
+  });
+}
+const CAN_CAPTURE=typeof navigator!=="undefined" && !!(navigator.mediaDevices&&navigator.mediaDevices.getDisplayMedia) && !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) && typeof MediaRecorder!=="undefined";
+const CAPTURE_MAX=30;
+const IS_IOS=typeof navigator!=="undefined" && (/iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1));
+const IS_ANDROID=typeof navigator!=="undefined" && /Android/i.test(navigator.userAgent);
+const FULL_CROP={x:0,y:0,w:1,h:1};
+function fmtSecs(t){ if(t==null||!isFinite(t)) return "0:00"; const m=Math.floor(t/60), s=t-m*60; return `${m}:${s.toFixed(1).padStart(4,"0")}`; }
+
+// Lets the athlete box the athlete/video inside a screen recording and trim it to one rep.
+// The crop and trim are applied when frames are sampled; the file itself is never re-encoded.
+function RefEditor({src,crop,onCrop,trim,onTrim}){
+  const wrapRef=useRef(null), vRef=useRef(null), drag=useRef(null);
+  const [dims,setDims]=useState(null), [dur,setDur]=useState(null);
+  function seek(t){ const v=vRef.current; if(v&&isFinite(t)) try{ v.currentTime=Math.max(0,t)+0.01; }catch(e){} }
+  function onMeta(){
+    const v=vRef.current; if(!v) return; setDims({w:v.videoWidth||16,h:v.videoHeight||9});
+    const d=v.duration;
+    if(isFinite(d)&&d>0){ setDur(d); if(!trim) onTrim({start:0,end:d}); seek(trim?trim.start:0); }
+    else { const f=()=>{ if(isFinite(v.duration)&&v.duration>0){ v.removeEventListener("durationchange",f); setDur(v.duration); if(!trim) onTrim({start:0,end:v.duration}); seek(trim?trim.start:0); } }; v.addEventListener("durationchange",f); try{ v.currentTime=1e6; }catch(e){} }
+  }
+  function down(e,mode){ e.preventDefault(); e.stopPropagation(); drag.current={mode,r:wrapRef.current.getBoundingClientRect(),sx:e.clientX,sy:e.clientY,c0:{...crop}}; try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(err){} }
+  function move(e){
+    const d=drag.current; if(!d) return; e.preventDefault();
+    const dx=(e.clientX-d.sx)/d.r.width, dy=(e.clientY-d.sy)/d.r.height, MIN=0.12; let {x,y,w,h}=d.c0;
+    if(d.mode==="move"){ x=clamp(x+dx,0,1-w); y=clamp(y+dy,0,1-h); }
+    else {
+      if(d.mode[1]==="l"){ const nx=clamp(x+dx,0,x+w-MIN); w+=x-nx; x=nx; }
+      if(d.mode[1]==="r"){ w=clamp(w+dx,MIN,1-x); }
+      if(d.mode[0]==="t"){ const ny=clamp(y+dy,0,y+h-MIN); h+=y-ny; y=ny; }
+      if(d.mode[0]==="b"){ h=clamp(h+dy,MIN,1-y); }
+    }
+    onCrop({x,y,w,h});
+  }
+  function up(){ drag.current=null; }
+  const ptr={onPointerMove:move,onPointerUp:up,onPointerCancel:up};
+  const ratio=dims?dims.w/dims.h:16/9;
+  return (
+    <div>
+      <div ref={wrapRef} style={{position:"relative",width:`min(100%, calc(60vh * ${ratio.toFixed(4)}))`,aspectRatio:`${ratio.toFixed(4)}`,margin:"0 auto",background:"#000",borderRadius:6,overflow:"hidden",touchAction:"none",userSelect:"none",WebkitUserSelect:"none"}}>
+        <video ref={vRef} src={src} muted playsInline preload="auto" onLoadedMetadata={onMeta} style={{position:"absolute",inset:0,width:"100%",height:"100%",display:"block",pointerEvents:"none"}}/>
+        <div role="group" aria-label="Crop area. Drag to move, drag a corner to resize." onPointerDown={e=>down(e,"move")} {...ptr} style={{position:"absolute",left:`${crop.x*100}%`,top:`${crop.y*100}%`,width:`${crop.w*100}%`,height:`${crop.h*100}%`,boxShadow:"0 0 0 9999px rgba(10,12,10,0.6)",outline:"1px solid rgba(243,240,228,0.7)",outlineOffset:-1,cursor:"move",touchAction:"none"}}>
+          {["tl","tr","bl","br"].map(k=>(
+            <div key={k} onPointerDown={e=>down(e,k)} {...ptr} style={{position:"absolute",width:36,height:36,[k[0]==="t"?"top":"bottom"]:-6,[k[1]==="l"?"left":"right"]:-6,cursor:(k==="tl"||k==="br")?"nwse-resize":"nesw-resize",touchAction:"none"}}>
+              <span style={{position:"absolute",width:18,height:18,[k[0]==="t"?"top":"bottom"]:6,[k[1]==="l"?"left":"right"]:6,[k[0]==="t"?"borderTop":"borderBottom"]:`3px solid ${C.chalk}`,[k[1]==="l"?"borderLeft":"borderRight"]:`3px solid ${C.chalk}`,boxSizing:"border-box"}}/>
+            </div>
+          ))}
+        </div>
+      </div>
+      {dur && trim && (
+        <div style={{display:"grid",gridTemplateColumns:"auto minmax(0,1fr) auto",alignItems:"center",gap:"10px 12px",marginTop:14,fontSize:13}}>
+          <label htmlFor="ref-trim-start" style={{color:C.muted}}>Start</label>
+          <input id="ref-trim-start" type="range" min={0} max={dur} step={0.1} value={trim.start} onChange={e=>{ const t=Math.min(+e.target.value,trim.end-0.5); onTrim({...trim,start:Math.max(0,t)}); seek(t); }} style={{width:"100%",accentColor:C.you}}/>
+          <span style={{fontVariantNumeric:"tabular-nums",minWidth:44,textAlign:"right"}}>{fmtSecs(trim.start)}</span>
+          <label htmlFor="ref-trim-end" style={{color:C.muted}}>End</label>
+          <input id="ref-trim-end" type="range" min={0} max={dur} step={0.1} value={trim.end} onChange={e=>{ const t=Math.max(+e.target.value,trim.start+0.5); onTrim({...trim,end:Math.min(dur,t)}); seek(t); }} style={{width:"100%",accentColor:C.you}}/>
+          <span style={{fontVariantNumeric:"tabular-nums",minWidth:44,textAlign:"right"}}>{fmtSecs(trim.end)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
 const TOTAL_MOVES=Object.values(SPORTS).reduce((n,s)=>n+s.moves.length,0);
 function Field({label,children}){ return (<div><div style={{fontSize:12,letterSpacing:0.8,textTransform:"uppercase",color:C.muted,marginBottom:8,fontFamily:BODY,fontWeight:600}}>{label}</div>{children}</div>); }
 function Select({value,onChange,options,accent}){ return (<select value={value} onChange={e=>onChange(e.target.value)} style={{width:"100%",background:C.panel,color:accent||C.chalk,border:`1px solid ${C.line}`,borderRadius:6,padding:"11px 12px",fontSize:15,cursor:"pointer",boxSizing:"border-box"}}>{options.map(o=>(<option key={o} value={o} style={{background:C.panel,color:C.chalk}}>{o}</option>))}</select>); }
@@ -693,8 +782,74 @@ function App(){
   const [refVideoUrl,setRefVideoUrl]=useState(null);
   const [refFileName,setRefFileName]=useState("");
   const refFileRef=useRef(null);
-  function onRefFile(e){ const f=e.target.files&&e.target.files[0]; if(!f)return; if(refVideoUrl)URL.revokeObjectURL(refVideoUrl); setRefVideoUrl(URL.createObjectURL(f)); setRefFileName(f.name); setRefSessionId(null); }
-  function clearRefFile(){ if(refVideoUrl)URL.revokeObjectURL(refVideoUrl); setRefVideoUrl(null); setRefFileName(""); if(refFileRef.current)refFileRef.current.value=""; }
+  function onRefFile(e){ const f=e.target.files&&e.target.files[0]; if(!f)return; if(refVideoUrl&&refVideoUrl.startsWith("blob:"))URL.revokeObjectURL(refVideoUrl); setRefVideoUrl(URL.createObjectURL(f)); setRefFileName(f.name); setRefLabel(""); setRefSessionId(null); }
+  function clearRefFile(){ if(refVideoUrl&&refVideoUrl.startsWith("blob:"))URL.revokeObjectURL(refVideoUrl); setRefVideoUrl(null); setRefFileName(""); setRefLabel(""); setDirectState(""); setRefCrop(FULL_CROP); setRefTrim(null); setRefEditing(false); if(refFileRef.current)refFileRef.current.value=""; }
+  const [refLabel,setRefLabel]=useState("");
+  const [refCrop,setRefCrop]=useState(FULL_CROP);
+  const [refTrim,setRefTrim]=useState(null);
+  const [refEditing,setRefEditing]=useState(false);
+  const screenRecRef=useRef(null);
+  function onScreenRecording(e,platform){ const f=e.target.files&&e.target.files[0]; if(!f) return; clearRefFile(); setRefVideoUrl(URL.createObjectURL(f)); setRefFileName("Screen recording"); setRefLabel(`the ${platform} reference clip`); setRefSessionId(null); setRefEditing(true); if(screenRecRef.current) screenRecRef.current.value=""; }
+  const [refMode,setRefMode]=useState("upload");
+  const [refLink,setRefLink]=useState("");
+  const [directState,setDirectState]=useState("");
+  const [capturing,setCapturing]=useState(false);
+  const [capSecs,setCapSecs]=useState(0);
+  const [capErr,setCapErr]=useState("");
+  const embedRef=useRef(null), capRef=useRef(null);
+  async function applyDirectLink(info){
+    setDirectState("checking");
+    const ok=await canReadDirect(info.src);
+    if(!ok){ setDirectState("blocked"); return; }
+    clearRefFile(); setRefVideoUrl(info.src); setRefFileName(decodeURIComponent(info.src.split("/").pop().split("?")[0])||"Linked video"); setRefLabel("the linked reference clip"); setRefSessionId(null); setDirectState("ok");
+  }
+  async function startCapture(platform){
+    setCapErr("");
+    const el=embedRef.current; if(!el) return;
+    el.scrollIntoView({block:"center",behavior:"instant"});
+    let stream;
+    try{ stream=await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:"browser",frameRate:30},audio:false,preferCurrentTab:true,selfBrowserSurface:"include",surfaceSwitching:"exclude"}); }
+    catch(e){ setCapErr(e&&e.name==="NotAllowedError"?"Capture was cancelled. Click Capture reference again and choose this tab.":"This browser couldn't start a tab capture. Upload the reference as a file instead."); return; }
+    const track=stream.getVideoTracks()[0];
+    const surface=(track&&track.getSettings&&track.getSettings().displaySurface)||"browser";
+    const src=document.createElement("video"); src.muted=true; src.playsInline=true; src.srcObject=stream;
+    try{ await src.play(); }catch(e){}
+    // Crop each captured frame to the embedded player so the pose model sees the athlete, not the page.
+    const r0=el.getBoundingClientRect();
+    const canvas=document.createElement("canvas"); canvas.width=Math.round(Math.min(720,r0.width*2)); canvas.height=Math.round(canvas.width*r0.height/r0.width);
+    const ctx=canvas.getContext("2d"); let raf=0;
+    const draw=()=>{
+      if(src.videoWidth){
+        if(surface==="browser"){
+          // Only the part of the player inside the viewport is in the captured frame.
+          const r=el.getBoundingClientRect(), W=window.innerWidth, H=window.innerHeight;
+          const sx=src.videoWidth/W, sy=src.videoHeight/H;
+          const x0=Math.max(0,r.left), y0=Math.max(0,r.top), x1=Math.min(W,r.right), y1=Math.min(H,r.bottom);
+          ctx.fillStyle="#000"; ctx.fillRect(0,0,canvas.width,canvas.height);
+          if(x1>x0&&y1>y0){ const kx=canvas.width/r.width, ky=canvas.height/r.height; ctx.drawImage(src,x0*sx,y0*sy,(x1-x0)*sx,(y1-y0)*sy,(x0-r.left)*kx,(y0-r.top)*ky,(x1-x0)*kx,(y1-y0)*ky); }
+        } else { ctx.drawImage(src,0,0,canvas.width,canvas.height); }
+      }
+      raf=requestAnimationFrame(draw);
+    };
+    draw();
+    let mime=""; for(const m of["video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm","video/mp4"]){ if(MediaRecorder.isTypeSupported(m)){mime=m;break;} }
+    let rec; try{ rec=new MediaRecorder(canvas.captureStream(30),mime?{mimeType:mime}:undefined); }catch(e){ cancelAnimationFrame(raf); stream.getTracks().forEach(t=>t.stop()); setCapErr("Recording isn't supported in this browser. Upload the reference as a file instead."); return; }
+    const chunks=[];
+    rec.ondataavailable=ev=>{ if(ev.data&&ev.data.size) chunks.push(ev.data); };
+    rec.onstop=()=>{
+      cancelAnimationFrame(raf); stream.getTracks().forEach(t=>t.stop()); capRef.current=null; setCapturing(false);
+      if(!chunks.length){ setCapErr("Nothing was recorded. Try again and press play once the capture starts."); return; }
+      const blob=new Blob(chunks,{type:mime||"video/webm"});
+      clearRefFile(); setRefVideoUrl(URL.createObjectURL(blob)); setRefFileName(`${platform} clip, captured`); setRefLabel(`the ${platform} reference clip`); setRefSessionId(null);
+    };
+    const stop=()=>{ if(rec.state!=="inactive") rec.stop(); };
+    if(track) track.addEventListener("ended",stop);
+    capRef.current={stop}; rec.start(250); setCapSecs(0); setCapturing(true);
+  }
+  function stopCapture(){ if(capRef.current) capRef.current.stop(); }
+  useEffect(()=>{ if(!capturing) return; const id=setInterval(()=>setCapSecs(x=>x+1),1000); return ()=>clearInterval(id); },[capturing]);
+  useEffect(()=>{ if(capturing&&capSecs>=CAPTURE_MAX) stopCapture(); },[capSecs,capturing]);
+  useEffect(()=>{ if(step!=="context") stopCapture(); },[step]);
   const [refSessionId,setRefSessionId]=useState(null);
   function pickRefSession(id){ clearRefFile(); setRefSessionId(id===refSessionId?null:id); }
   const [sport,setSport]=useState("Basketball");
@@ -1255,7 +1410,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
         }
       } else if(refVideoUrl){
         setPhase("Tracking the reference clip…");
-        refData=await runPose(refVideoUrl,()=>{});
+        refData=await runPose(refVideoUrl,()=>{},{crop:refCrop,trim:refTrim}); if(refData) refData.label=refLabel||null;
       }
       setPhase("Crunching the angles…");
       let rep=analyzeMotion(data,sport,move,legend,level,refData,refMeasurements);
@@ -2006,7 +2161,7 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
           <section style={{padding:"36px 0 80px"}}>
             <h2 style={{fontFamily:DISPLAY,textTransform:"uppercase",letterSpacing:0.5,fontSize:30,margin:"0 0 6px"}}>Set the scene</h2>
             <p style={{color:C.muted,margin:"0 0 28px",fontSize:15}}>Tell it the sport and move so the scoring uses the right targets.</p>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24,alignItems:"start"}}>
+            <div className="fr-split" style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)",gap:24,alignItems:"start"}}>
               <div style={{background:C.panel,border:`1px solid ${C.line}`,borderRadius:10,padding:12}}>
                 {videoUrl?(<video src={videoUrl} controls style={{width:"100%",borderRadius:6,display:"block",background:"#000"}}/>):(<div style={{aspectRatio:"16/9",background:"#000",borderRadius:6}}/>)}
                 <div style={{color:C.muted,fontSize:12,marginTop:8,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{fileName}</div>
@@ -2024,15 +2179,81 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                   <div style={{color:C.muted,fontSize:12,marginTop:6,lineHeight:1.5}}>With a key, an AI rewrites the analysis &amp; plan from your measured numbers. Without one, you still get the full measured report. Key stays in this tab only.</div>
                 </Field>
                 <Field label="Reference clip (optional)">
-                  {!refVideoUrl ? (
-                    <label className="fr-btn" tabIndex={0} onKeyDown={e=>(e.key==="Enter"||e.key===" ")&&refFileRef.current?.click()} style={{...btnGhost,padding:"11px 18px",width:"100%",boxSizing:"border-box",justifyContent:"center"}}>Upload a reference clip<input ref={refFileRef} type="file" accept="video/*" onChange={onRefFile} style={{display:"none"}}/></label>
-                  ) : (
-                    <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-                      <span style={{color:C.muted,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:220}}>{refFileName}</span>
-                      <button className="fr-btn" onClick={clearRefFile} style={{background:"transparent",color:C.you,border:`1px solid ${C.you}`,borderRadius:6,padding:"6px 12px",fontSize:12,cursor:"pointer"}}>Remove</button>
+                  {!refVideoUrl ? (<>
+                    <div role="tablist" aria-label="Reference source" style={{display:"flex",gap:8,marginBottom:10}}>
+                      {[["upload","Upload a file"],["link","Paste a link"]].map(([k,lab])=>(<button key={k} role="tab" aria-selected={refMode===k} className="fr-chip" onClick={()=>{ if(capturing) return; setRefMode(k); setCapErr(""); }} style={{background:refMode===k?C.panel2:"transparent",color:refMode===k?C.chalk:C.muted,border:`1px solid ${refMode===k?"rgba(243,240,228,0.35)":C.line}`,borderRadius:6,padding:"7px 14px",fontSize:13,cursor:"pointer"}}>{lab}</button>))}
+                    </div>
+                    {refMode==="upload" ? (
+                      <label className="fr-btn" tabIndex={0} onKeyDown={e=>(e.key==="Enter"||e.key===" ")&&refFileRef.current?.click()} style={{...btnGhost,padding:"11px 18px",width:"100%",boxSizing:"border-box",justifyContent:"center"}}>Upload a reference clip<input ref={refFileRef} type="file" accept="video/*" onChange={onRefFile} style={{display:"none"}}/></label>
+                    ) : (()=>{ const info=parseClipLink(refLink); const showPlayer=info&&(info.embed||(info.direct&&directState==="blocked")); return (
+                      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                        <input type="url" inputMode="url" value={refLink} disabled={capturing} onChange={e=>{setRefLink(e.target.value);setDirectState("");setCapErr("");}} placeholder="YouTube, TikTok, Instagram, Facebook, or Vimeo link" style={inputStyle}/>
+                        {info&&info.error && <div style={{color:C.muted,fontSize:13,lineHeight:1.5}}>{info.error}</div>}
+                        {info&&info.direct&&directState!=="blocked" && (
+                          <div><button className="fr-btn" onClick={()=>applyDirectLink(info)} disabled={directState==="checking"} style={{...btnGhost,padding:"10px 16px",fontSize:14,opacity:directState==="checking"?0.6:1}}>{directState==="checking"?"Checking the video…":"Use this video"}</button></div>
+                        )}
+                        {info&&info.direct&&directState==="blocked" && <div style={{color:C.muted,fontSize:13,lineHeight:1.5}}>The site hosting this video doesn't let other pages read it directly, so capture it from the player below instead.</div>}
+                        {showPlayer && (<>
+                          <div ref={embedRef} style={{position:"relative",width:"100%",maxWidth:info.tall?"min(320px, calc((100vh - 160px) * 9 / 16))":"none",aspectRatio:info.tall?"9 / 16":"16 / 9",margin:info.tall?"0 auto":0,background:"#000",borderRadius:6,overflow:"hidden",boxShadow:capturing?`0 0 0 2px ${C.you}`:"none"}}>
+                            {info.embed
+                              ? <iframe key={info.embed} src={info.embed} title={`${info.platform} reference clip`} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen style={{position:"absolute",inset:0,width:"100%",height:"100%",border:"none"}}/>
+                              : <video src={info.src} controls playsInline style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"contain"}}/>}
+                          </div>
+                          {CAN_CAPTURE ? (<>
+                            <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+                              {!capturing
+                                ? <button className="fr-btn" onClick={()=>startCapture(info.platform==="Video file"?"Linked":info.platform)} style={{...btnGhost,padding:"10px 16px",fontSize:14}}><Icon name="rec" size={12} style={{color:C.you}}/>Capture reference</button>
+                                : <button className="fr-btn" onClick={stopCapture} style={{...btnSolid,background:C.chalk,padding:"10px 16px",fontSize:14}}><Icon name="stop" size={12}/>Stop capture</button>}
+                              {capturing && <span style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:13,color:C.chalk}}><span style={{width:8,height:8,borderRadius:"50%",background:C.you,animation:"frblink 1s steps(2,start) infinite"}}/>{String(Math.floor(capSecs/60)).padStart(1,"0")}:{String(capSecs%60).padStart(2,"0")} / 0:{CAPTURE_MAX}</span>}
+                            </div>
+                            <div style={{color:C.muted,fontSize:12,lineHeight:1.5}}>{capturing
+                              ? "Recording the player. Press play, let one full rep run, then click Stop capture. Keep the player on screen and don't scroll."
+                              : `Click Capture reference and choose this tab when your browser asks. Then press play on the video and stop after one full rep (${CAPTURE_MAX} seconds max). The recording stays on your device.`}</div>
+                          </>) : (
+                            <ol className="fr-steps" style={{listStyle:"none",margin:0,padding:0,display:"flex",flexDirection:"column",gap:12}}>
+                              {[
+                                ["Start a screen recording", IS_IOS
+                                  ? "Open Control Center (swipe down from the top-right corner) and tap the Screen Recording button. If it's missing, add it in Settings, then Control Center."
+                                  : IS_ANDROID
+                                    ? "Swipe down twice from the top of the screen and tap Screen record. Sound isn't needed."
+                                    : "Use your device's screen recorder to record the video while it plays."],
+                                ["Play one full rep", <>Play the clip above, full screen if you can. Or <a href={refLink.trim()} target="_blank" rel="noopener noreferrer" style={{color:C.chalk,textDecoration:"underline",textUnderlineOffset:3}}>open it in {info.platform==="Video file"?"a new tab":info.platform}</a> and play it there.</>],
+                                ["Stop and upload it", "Stop the recording, come back to this page, and upload it. You'll box the athlete and trim to the rep next."],
+                              ].map(([t,d],i)=>(
+                                <li key={i} style={{display:"grid",gridTemplateColumns:"24px minmax(0,1fr)",gap:10}}>
+                                  <span style={{fontFamily:DISPLAY,fontWeight:600,color:C.you,fontSize:14,lineHeight:"21px"}}>{String(i+1).padStart(2,"0")}</span>
+                                  <div><div style={{fontSize:14,fontWeight:600,lineHeight:"21px"}}>{t}</div><div style={{color:C.muted,fontSize:13,lineHeight:1.5,marginTop:2}}>{d}</div></div>
+                                </li>
+                              ))}
+                              <li style={{paddingLeft:34}}>
+                                <label className="fr-btn" tabIndex={0} onKeyDown={e=>(e.key==="Enter"||e.key===" ")&&screenRecRef.current?.click()} style={{...btnGhost,padding:"11px 16px",fontSize:14}}><Icon name="upload" size={15}/>Upload screen recording<input ref={screenRecRef} type="file" accept="video/*" onChange={e=>onScreenRecording(e,info.platform==="Video file"?"linked":info.platform)} style={{display:"none"}}/></label>
+                              </li>
+                            </ol>
+                          )}
+                          {capErr && <div style={{color:C.you,fontSize:13}}>{capErr}</div>}
+                        </>)}
+                      </div>
+                    ); })()}
+                  </>) : (
+                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                      {refEditing ? (<>
+                        <div style={{fontSize:13,color:C.muted,lineHeight:1.5}}>Drag the box so it covers the video with the athlete's whole body inside. Drag a corner to resize, then set the start and end around one rep.</div>
+                        <RefEditor src={refVideoUrl} crop={refCrop} onCrop={setRefCrop} trim={refTrim} onTrim={setRefTrim}/>
+                        <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                          <button className="fr-btn" onClick={()=>setRefEditing(false)} style={{...btnSolid,padding:"10px 18px",fontSize:14}}><Icon name="check" size={15}/>Done</button>
+                          <button className="fr-btn" onClick={()=>{ setRefCrop(FULL_CROP); setRefTrim(null); setRefEditing(false); setTimeout(()=>setRefEditing(true),0); }} style={{...btnGhost,padding:"9px 16px",fontSize:14}}>Reset</button>
+                        </div>
+                      </>) : (<>
+                        <video src={refVideoUrl} controls muted playsInline style={{width:"100%",maxHeight:240,background:"#000",borderRadius:6,display:"block"}}/>
+                        <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                          <span style={{color:C.muted,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:200}}>{refFileName}{(refTrim||refCrop!==FULL_CROP)?" · cropped":""}</span>
+                          <button className="fr-btn" onClick={()=>setRefEditing(true)} style={{background:"transparent",color:C.chalk,border:`1px solid ${C.line}`,borderRadius:6,padding:"6px 12px",fontSize:12,cursor:"pointer"}}>Crop or trim</button>
+                          <button className="fr-btn" onClick={clearRefFile} style={{background:"transparent",color:C.you,border:`1px solid ${C.you}`,borderRadius:6,padding:"6px 12px",fontSize:12,cursor:"pointer"}}>Remove</button>
+                        </div>
+                      </>)}
                     </div>
                   )}
-                  {!refVideoUrl && sessions.filter(s=>s.report&&s.report.measurements).length>0 && (
+                  {!refVideoUrl && refMode==="upload" && sessions.filter(s=>s.report&&s.report.measurements).length>0 && (
                     <div style={{marginTop:10}}>
                       <div style={{color:C.muted,fontSize:12,margin:"2px 0 8px"}}>or compare to one of your own past sessions:</div>
                       <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
@@ -2042,9 +2263,9 @@ Give exactly 2 plan focus areas (the two lowest-scoring categories).`;
                       </div>
                     </div>
                   )}
-                  <div style={{color:C.muted,fontSize:12,marginTop:6,lineHeight:1.5}}>If a coach (or you) uploads a clip of correct form here, or you pick a past session above, your session gets measured against it directly: a real, apples-to-apples comparison instead of the idealized legend benchmark. Skip this and you still get the full report as usual.</div>
+                  <div style={{color:C.muted,fontSize:12,marginTop:6,lineHeight:1.5}}>Add a clip of the form you're aiming for (a coach's demo, a pro's highlight, or one of your past sessions) and your rep is measured against it directly instead of the legend benchmark. Skip this and you still get the full report.</div>
                 </Field>
-                <button className="fr-btn" onClick={analyze} style={{...btnSolid,padding:"15px",border:"none"}}>Analyze my clip</button>
+                <button className="fr-btn" onClick={()=>{ setRefEditing(false); analyze(); }} disabled={capturing} style={{...btnSolid,padding:"15px",border:"none",opacity:capturing?0.6:1}}>Analyze my clip</button>
                 <div style={{color:C.muted,fontSize:12,lineHeight:1.5}}>Tip: a side-on view where your whole body stays in frame gives the cleanest tracking.</div>
               </div>
             </div>
